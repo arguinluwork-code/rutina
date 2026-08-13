@@ -2,7 +2,7 @@
 // Solo se registra sobre https (o localhost); sobre http en la red local la app
 // funciona igual, nada más que sin caché offline.
 
-const CACHE = 'rutina-v3';
+const CACHE = 'rutina-v4';
 const ARCHIVOS = [
   './', './index.html', './styles.css', './manifest.webmanifest',
   './icon.svg', './icon-180.png', './icon-512.png',
@@ -13,7 +13,19 @@ const ARCHIVOS = [
 ];
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ARCHIVOS)).then(() => self.skipWaiting()));
+  e.waitUntil((async () => {
+    const c = await caches.open(CACHE);
+    // cache:'reload' es obligatorio: addAll() usa el caché HTTP del navegador y
+    // termina instalando archivos viejos, dejando una versión mezclada.
+    // Además cada archivo va por separado, así uno que falle no tumba la instalación.
+    await Promise.all(ARCHIVOS.map(async (u) => {
+      try {
+        const res = await fetch(new Request(u, { cache: 'reload' }));
+        if (res.ok) await c.put(u, res);
+      } catch { /* si falta uno, se resuelve por red en el fetch */ }
+    }));
+    await self.skipWaiting();
+  })());
 });
 
 self.addEventListener('activate', (e) => {

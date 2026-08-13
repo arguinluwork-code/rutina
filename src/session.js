@@ -86,18 +86,37 @@ export function recalcularDraft(db, ses) {
   const mismaSerie = enSesion.find(x => x.serieIdx === s.serieIdx);
   const base = mismaSerie || enSesion[enSesion.length - 1] || null;
 
+  // Prioridad de la precarga, de lo más específico a lo más general:
+  //   1. la misma serie ya cargada hoy    2. la serie anterior de hoy
+  //   3. la misma serie de la última vez  4. el último peso que pusiste, aunque
+  //      no hayas completado la serie     5. cero
   const prev = precarga(db, s.ejercicioId, s.serieIdx);
+  const memoria = db.ejercicios[s.ejercicioId]?.ultimo || null;
+  const origen =
+    base ? { tipo: 'sesion', serieIdx: base.serieIdx, peso: base.peso, reps: base.reps }
+    : prev ? { tipo: 'historial', peso: prev.peso, reps: prev.reps }
+    : memoria ? { tipo: 'memoria', peso: memoria.peso, reps: memoria.reps }
+    : null;
+
   ses.draft = {
     setId: s.id,
-    peso: base ? base.peso : (prev ? prev.peso : 0),
-    reps: base ? base.reps : (prev ? prev.reps : s.repsMin),
+    peso: origen ? origen.peso : 0,
+    reps: origen ? origen.reps : s.repsMin,
     rir: null,
     previo: prev,
-    // De dónde salió el número que ve en pantalla.
-    origen: base ? { tipo: 'sesion', serieIdx: base.serieIdx, peso: base.peso, reps: base.reps }
-          : prev ? { tipo: 'historial', peso: prev.peso, reps: prev.reps }
-          : null,
+    origen,
   };
+}
+
+/**
+ * Recuerda en el catálogo lo último que pusiste para este ejercicio, se haya
+ * completado la serie o no. Es lo que evita empezar de cero cuando salteás,
+ * abandonás la sesión, o es la primera vez que lo hacés.
+ */
+export function recordarCarga(db, ejercicioId, peso, reps) {
+  const e = db.ejercicios[ejercicioId];
+  if (!e) return;
+  e.ultimo = { peso, reps, ts: Date.now() };
 }
 
 export function ajustarDraft(ses, campo, delta, paso) {
@@ -153,6 +172,7 @@ export function completarSerie(db, ses, nombreEj) {
   s.rir = d.rir;
   s.ts = Date.now();
   ses.tocada = Date.now();
+  recordarCarga(db, s.ejercicioId, d.peso, d.reps);
 
   const siguiente = proximoPendiente(ses, s.id);
   if (siguiente) ses.cursor = siguiente.id;

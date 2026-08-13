@@ -23,6 +23,26 @@ function notaRespaldo(db) {
   }, icono(alerta ? 'alerta' : 'nube', 14), h('span', null, txt));
 }
 
+/**
+ * Las barras de Safari solo desaparecen instalándola: como la app nunca
+ * scrollea el documento, el navegador no tiene motivo para esconderlas.
+ */
+function avisoInstalar(db) {
+  const instalada = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  if (instalada || db.meta.ocultarInstalar) return null;
+
+  return h('div', {
+    style: 'display:flex;align-items:center;gap:10px;padding:2px',
+  },
+    h('span', { class: 'tiny', style: 'flex:1;line-height:1.35' },
+      'Compartir → Agregar a pantalla de inicio: se va la barra del navegador.'),
+    h('button', {
+      class: 'iconbtn', style: 'width:36px;height:36px;flex:none', 'aria-label': 'No mostrar más',
+      onclick: () => mutar(d => { d.meta.ocultarInstalar = true; }),
+    }, icono('cerrar', 15)),
+  );
+}
+
 function proximoDia(db) {
   const dias = db.rutina.dias;
   if (!dias.length) return null;
@@ -44,10 +64,14 @@ export function pantallaInicio(db) {
 
   const cuerpo = abierta ? bloqueEnCurso(db, abierta) : bloqueEmpezar(db);
 
+  // margin-top:auto empuja todo abajo, al alcance del pulgar, pero si la
+  // pantalla es corta el bloque scrollea en vez de quedar recortado.
   return h('main', { class: 'scr' },
     cabecera,
-    h('div', { class: 'spacer' }),
-    h('div', { class: 'stack', style: 'padding-bottom:14px' }, cuerpo, notaRespaldo(db)),
+    h('div', { class: 'scr-scroll', style: 'display:flex;flex-direction:column' },
+      h('div', { class: 'stack', style: 'margin-top:auto;padding-bottom:14px' },
+        cuerpo, avisoInstalar(db), notaRespaldo(db)),
+    ),
   );
 }
 

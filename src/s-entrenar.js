@@ -6,7 +6,7 @@ import { S, ir, mutar, volver } from './app.js';
 import { guardar } from './db.js';
 import {
   setActual, indiceActual, porEjercicio, totalEjercicios, resumen, hechas,
-  ajustarDraft, recalcularDraft, completarSerie, saltearEjercicio, retomarEjercicio, irASet,
+  ajustarDraft, recalcularDraft, recordarCarga, completarSerie, saltearEjercicio, retomarEjercicio, irASet,
   deshacer, etiquetaUndo, arrancarDescanso, restanteDescanso, ajustarDescanso,
   cortarDescanso, terminarSesion,
 } from './session.js';
@@ -87,9 +87,26 @@ function vistaEntrenar(db, ses) {
     ? 'corrigiendo lo cargado'
     : d.origen?.tipo === 'sesion'
       ? `serie ${d.origen.serieIdx + 1} de hoy: ${fPeso(d.origen.peso)} × ${d.origen.reps}`
-      : d.origen
+      : d.origen?.tipo === 'historial'
         ? `la vez pasada: ${fPeso(d.origen.peso)} × ${d.origen.reps}`
-        : 'primera vez con este ejercicio';
+        : d.origen
+          ? `lo dejaste en ${fPeso(d.origen.peso)} × ${d.origen.reps}`
+          : 'primera vez con este ejercicio';
+
+  // Cada ajuste se recuerda en el ejercicio, aunque no llegues a completar la
+  // serie: si la máquina está ocupada y salteás, el peso no se pierde.
+  const cambiarPeso = (signo) => {
+    ajustarDraft(ses, 'peso', signo, paso);
+    pesoTxt.textContent = fPeso(d.peso);
+    recordarCarga(db, s.ejercicioId, d.peso, d.reps);
+    persistirPronto();
+  };
+  const cambiarReps = (signo) => {
+    ajustarDraft(ses, 'reps', signo);
+    repsTxt.textContent = String(d.reps);
+    recordarCarga(db, s.ejercicioId, d.peso, d.reps);
+    persistirPronto();
+  };
 
   const cardPeso = h('div', { class: 'stepper' },
     h('div', { class: 'stepper-hd' },
@@ -97,9 +114,9 @@ function vistaEntrenar(db, ses) {
       h('span', { class: 'tiny num' }, previoTxt),
     ),
     h('div', { class: 'stepper-body' },
-      stepBtn('−', () => { ajustarDraft(ses, 'peso', -1, paso); pesoTxt.textContent = fPeso(d.peso); persistirPronto(); }),
+      stepBtn('−', () => cambiarPeso(-1), 30),
       h('div', { class: 'sval' }, pesoTxt, h('span', null, 'kg')),
-      stepBtn('+', () => { ajustarDraft(ses, 'peso', +1, paso); pesoTxt.textContent = fPeso(d.peso); persistirPronto(); }),
+      stepBtn('+', () => cambiarPeso(+1), 30),
     ),
   );
 
@@ -109,9 +126,9 @@ function vistaEntrenar(db, ses) {
       h('span', { class: 'tiny num' }, `rango ${fRango(s.repsMin, s.repsMax)}`),
     ),
     h('div', { class: 'stepper-body' },
-      stepBtn('−', () => { ajustarDraft(ses, 'reps', -1); repsTxt.textContent = String(d.reps); persistirPronto(); }),
+      stepBtn('−', () => cambiarReps(-1), 30),
       h('div', { class: 'sval' }, repsTxt),
-      stepBtn('+', () => { ajustarDraft(ses, 'reps', +1); repsTxt.textContent = String(d.reps); persistirPronto(); }),
+      stepBtn('+', () => cambiarReps(+1), 30),
     ),
   );
 

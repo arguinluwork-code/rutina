@@ -105,10 +105,21 @@ export function plural(n, sing, plu) { return `${n} ${n === 1 ? sing : plu}`; }
 /** Botón de más/menos: un toque suma uno, mantener apretado acelera. */
 export function mantener(el, fn) {
   let t = null, iv = null, veces = 0;
-  const parar = () => { clearTimeout(t); clearInterval(iv); t = iv = null; veces = 0; };
+  const parar = () => {
+    clearTimeout(t); clearInterval(iv);
+    t = iv = null; veces = 0;
+    window.removeEventListener('pointerup', parar, true);
+    window.removeEventListener('pointercancel', parar, true);
+  };
   el.addEventListener('pointerdown', (ev) => {
     ev.preventDefault();
+    parar();
     fn();
+    // Los listeners de corte van en window y en captura a propósito: si algo
+    // repinta la pantalla y destruye este botón, el pointerup igual llega y el
+    // temporizador no queda corriendo solo, disparando el número al infinito.
+    window.addEventListener('pointerup', parar, true);
+    window.addEventListener('pointercancel', parar, true);
     t = setTimeout(() => {
       iv = setInterval(() => {
         veces++;
@@ -117,7 +128,7 @@ export function mantener(el, fn) {
       }, 110);
     }, 380);
   });
-  for (const e of ['pointerup', 'pointercancel', 'pointerleave']) el.addEventListener(e, parar);
+  el.addEventListener('pointerleave', parar);
   return el;
 }
 

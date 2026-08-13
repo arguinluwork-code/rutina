@@ -1,7 +1,7 @@
 // Arranque, estado global y navegación.
 
 import { cargar, guardar, pedirPersistencia } from './db.js';
-import { semillaInicial, VERSION_DATOS } from './data.js';
+import { semillaInicial, VERSION_DATOS, PASO } from './data.js';
 import { tomarFoto } from './db.js';
 import { h, vaciar, cerrarHoja, confirmar, icono, toast } from './ui.js';
 import { ABANDONO_MS, terminarSesion, descartarSesion } from './session.js';
@@ -102,6 +102,37 @@ function barraTabs() {
 // Un solo latido para todo lo que depende del reloj (el descanso).
 setInterval(() => { if (S.onTick) S.onTick(); }, 250);
 
+// ---------- migraciones ----------
+
+/**
+ * Lleva la base guardada al formato actual. Nunca pisa entrenamientos: si ya
+ * hay sesiones cargadas, se conserva la rutina que tenías y solo se ajusta lo
+ * que no es una decisión tuya.
+ */
+async function migrar(db) {
+  const desde = db.v || 1;
+  if (desde >= VERSION_DATOS) return db;
+
+  await tomarFoto(db, `antes de actualizar del formato ${desde}`);
+
+  // v2: rutina nueva. Sin nada registrado no hay nada que perder.
+  if (desde < 2 && db.sesiones.length === 0 && !db.sesionAbierta) {
+    const nuevo = semillaInicial();
+    guardar(nuevo);
+    return nuevo;
+  }
+
+  // v3: un solo salto de carga para todos los ejercicios.
+  if (desde < 3) {
+    for (const e of Object.values(db.ejercicios)) e.incremento = PASO;
+  }
+
+  if (desde < 2) S.avisoRutina = true;
+  db.v = VERSION_DATOS;
+  guardar(db);
+  return db;
+}
+
 // ---------- arranque ----------
 
 async function arrancar() {
@@ -109,20 +140,7 @@ async function arrancar() {
   let db = await cargar();
   if (!db) { db = semillaInicial(); guardar(db); }
 
-  // Rutina nueva. Si todavía no hay nada registrado no se pierde nada al
-  // reemplazarla; si ya entrenaste, no se toca y el cambio lo hacés vos.
-  if ((db.v || 1) < VERSION_DATOS) {
-    const virgen = db.sesiones.length === 0 && !db.sesionAbierta;
-    if (virgen) {
-      db = semillaInicial();
-      guardar(db);
-    } else {
-      await tomarFoto(db, 'antes de actualizar el formato');
-      db.v = VERSION_DATOS;
-      guardar(db);
-      S.avisoRutina = true;
-    }
-  }
+  db = await migrar(db);
   S.db = db;
 
   const ses = db.sesionAbierta;

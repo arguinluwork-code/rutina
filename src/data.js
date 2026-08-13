@@ -8,7 +8,10 @@
 // - En la lista de músculos de un ejercicio, el PRIMERO es el primario y cuenta una serie
 //   entera; los demás son secundarios y cuentan media.
 
-export const VERSION_DATOS = 2;
+export const VERSION_DATOS = 3;
+
+/** Salto de carga por tap, igual para todo. Editable por ejercicio en Rutina. */
+export const PASO = 2.5;
 
 export const MUSCULOS = [
   { id: 'pecho', label: 'Pecho' },
@@ -53,26 +56,26 @@ function it(ejercicioId, series, repsMin, repsMax, rirMin, rirMax, descanso) {
 const CATALOGO = [
   // ---------- lunes ----------
   ej('ex_press_banca', 'Press banca con barra',
-    ['pecho', 'triceps', 'hombro-anterior'], 2.5, 'peso', [
+    ['pecho', 'triceps', 'hombro-anterior'], PASO, 'peso', [
     'Juntá y hundí los omóplatos contra el banco antes de sacar la barra. El pecho queda alto y el hombro deja de compensar.',
     'Bajá a la línea del pezón con los codos a unos 45° del torso, no abiertos a 90°.',
     'Pies firmes y cadera apoyada. Si tenés que despegar la cola, el peso está de más.',
     'Volviendo de un parate, quedate en RIR 2 real las primeras semanas: el manguito rotador es lo que te saca de la rutina, no el pecho.',
   ]),
   ej('ex_press_militar_mancuernas', 'Press militar sentado con mancuernas',
-    ['hombro-anterior', 'hombro-lateral', 'triceps'], 2, 'peso', [
+    ['hombro-anterior', 'hombro-lateral', 'triceps'], PASO, 'peso', [
     'Respaldo casi vertical y costillas abajo: no arquees la lumbar para sacar la última repetición.',
     'Bajá hasta que el codo quede apenas por debajo del hombro. Más abajo no suma y estresa la articulación.',
     'Las mancuernas viajan levemente hacia adentro al subir, no en línea recta hacia afuera.',
   ]),
   ej('ex_press_inclinado_maquina', 'Press inclinado en máquina',
-    ['pecho', 'hombro-anterior', 'triceps'], 5, 'peso', [
+    ['pecho', 'hombro-anterior', 'triceps'], PASO, 'peso', [
     'Ajustá el asiento para que las manijas queden a la altura de la parte alta del pecho.',
     'Frená un segundo en el punto más profundo en vez de rebotar.',
     'No bloquees el codo del todo arriba: perdés tensión.',
   ]),
   ej('ex_elevacion_lateral_polea', 'Elevación lateral en polea, unilateral',
-    ['hombro-lateral'], 2.5, 'peso', [
+    ['hombro-lateral'], PASO, 'peso', [
     'Parate del lado opuesto a la polea: el cable cruza por delante del cuerpo y mantiene tensión abajo, que es donde la mancuerna la pierde.',
     'Codo levemente flexionado y fijo. El movimiento sale del hombro, no del codo.',
     'Subí hasta la línea del hombro. Más arriba entra el trapecio y el deltoides deja de trabajar.',
@@ -80,7 +83,7 @@ const CATALOGO = [
     'Si no hay peso intermedio en la torre: las dos primeras series pesadas en 8-12, y las dos últimas con la mitad de carga al fallo real.',
   ]),
   ej('ex_pushdown_barra', 'Extensión de tríceps en polea alta (barra)',
-    ['triceps'], 5, 'peso', [
+    ['triceps'], PASO, 'peso', [
     'Barra recta o en V: permite más carga que la soga, y este es el ejercicio pesado de tríceps del día.',
     'Codos pegados al costado y quietos: solo se mueve el antebrazo.',
     'Torso apenas inclinado hacia adelante, no vertical, para que la polea quede alineada.',
@@ -88,7 +91,7 @@ const CATALOGO = [
     'Si la barra recta te molesta la muñeca o el codo, pasate a la barra en V.',
   ]),
   ej('ex_triceps_overhead_soga', 'Extensión de tríceps sobre la cabeza en polea (soga)',
-    ['triceps'], 2.5, 'peso', [
+    ['triceps'], PASO, 'peso', [
     'Con soga: el agarre neutro evita la torsión de muñeca que genera la barra recta con los brazos atrás de la cabeza.',
     'Alejate de la polea hasta sentir el estiramiento del tríceps.',
     'Codos apuntando al frente y cerrados, no abiertos a los costados.',
@@ -97,20 +100,20 @@ const CATALOGO = [
 
   // ---------- miércoles ----------
   ej('ex_jalon_pecho', 'Jalón al pecho, agarre neutro',
-    ['dorsal', 'biceps', 'espalda-alta'], 5, 'peso', [
+    ['dorsal', 'biceps', 'espalda-alta'], PASO, 'peso', [
     'Empezá bajando el hombro antes de doblar el codo. Si arrancás tirando con el brazo, trabaja el bíceps.',
     'Llevá la barra a la clavícula con el pecho arriba, sin tirarte para atrás.',
     'Soltá controlado hasta sentir el estiramiento del dorsal, no dejes que te levante del asiento.',
   ]),
   ej('ex_remo_maquina', 'Remo en máquina con apoyo pectoral',
-    ['espalda-alta', 'dorsal', 'biceps', 'hombro-posterior'], 5, 'peso', [
+    ['espalda-alta', 'dorsal', 'biceps', 'hombro-posterior'], PASO, 'peso', [
     'Sirve igual la T-bar SI tiene apoyo pectoral. La T-bar tipo landmine (parado, inclinado, barra anclada al piso) no: ahí el torso lo sostiene la espalda baja.',
     'Pecho pegado al apoyo todo el recorrido: si se despega, estás usando la espalda baja.',
     'Codos rozando el torso, tirá hacia la cadera y no hacia arriba.',
     'Un segundo de pausa con los omóplatos juntos antes de soltar.',
   ]),
   ej('ex_jalon_unilateral', 'Jalón unilateral en polea alta',
-    ['dorsal', 'biceps'], 2.5, 'peso', [
+    ['dorsal', 'biceps'], PASO, 'peso', [
     'Sentado o arrodillado frente a la polea, con una sola manija. Cada lado por separado empareja diferencias entre lados.',
     'Dejá que el hombro suba y el omóplato se abra arriba: ese estiramiento extra es la razón de hacerlo unilateral.',
     'Tirá hacia el costado de las costillas, no hacia el pecho, y bajá el hombro antes de doblar el codo.',
@@ -118,19 +121,19 @@ const CATALOGO = [
     'Igualá repeticiones entre lados, no peso. Arrancá siempre por el lado más débil.',
   ]),
   ej('ex_pullover_polea', 'Pull-over en polea alta',
-    ['dorsal'], 2.5, 'peso', [
+    ['dorsal'], PASO, 'peso', [
     'Codos semi rígidos todo el movimiento. Si se doblan, se convierte en un jalón.',
     'Cadera atrás y torso inclinado: buscá que el dorsal quede estirado arriba.',
     'Bajá hasta los muslos y frená ahí.',
   ]),
   ej('ex_curl_mancuernas', 'Curl con mancuernas alterno',
-    ['biceps'], 2, 'peso', [
+    ['biceps'], PASO, 'peso', [
     'Codo fijo al costado del torso: si viaja hacia adelante, entra el hombro.',
     'Supiná (girá la palma hacia arriba) mientras subís, no antes.',
     'Bajá en 2 segundos. La fase negativa es la mitad del estímulo.',
   ]),
   ej('ex_curl_martillo', 'Curl martillo con mancuernas',
-    ['biceps', 'antebrazo'], 2, 'peso', [
+    ['biceps', 'antebrazo'], PASO, 'peso', [
     'Palmas enfrentadas todo el recorrido, sin rotar.',
     'Trabaja el braquial y el braquiorradial: es lo que te engrosa el brazo visto de costado.',
     'Nada de balanceo del torso, aunque sea la última serie.',
@@ -138,37 +141,37 @@ const CATALOGO = [
 
   // ---------- viernes ----------
   ej('ex_prensa', 'Prensa 45°',
-    ['cuadriceps', 'gluteo', 'isquiotibiales'], 5, 'peso', [
+    ['cuadriceps', 'gluteo', 'isquiotibiales'], PASO, 'peso', [
     'Pies al ancho de hombros, a media altura de la plataforma.',
     'Bajá hasta donde la cadera se mantenga apoyada. Si la cola se despega, se te redondea la lumbar.',
     'No bloquees las rodillas arriba.',
   ]),
   ej('ex_prensa_unilateral', 'Prensa unilateral o hack machine',
-    ['cuadriceps', 'gluteo'], 5, 'peso', [
+    ['cuadriceps', 'gluteo'], PASO, 'peso', [
     'Arrancá siempre por la pierna más débil y igualá las repeticiones con la otra.',
     'Rodilla siguiendo la línea del pie, sin caer hacia adentro.',
     'Rango completo antes que carga: la profundidad es lo que hace crecer el cuádriceps.',
   ]),
   ej('ex_curl_femoral', 'Curl femoral',
-    ['isquiotibiales'], 5, 'peso', [
+    ['isquiotibiales'], PASO, 'peso', [
     'Cadera pegada al apoyo, sin levantarla para completar la repetición.',
     'El eje de la máquina tiene que coincidir con la rodilla.',
     'Bajá lento: el isquiotibial se lesiona en la fase excéntrica, entrenarlo ahí lo protege.',
   ]),
   ej('ex_extension_cuadriceps', 'Extensión de cuádriceps',
-    ['cuadriceps'], 5, 'peso', [
+    ['cuadriceps'], PASO, 'peso', [
     'Estirá del todo arriba y aguantá un segundo apretando.',
     'Espalda apoyada, sin tirar el torso hacia atrás para ayudarte.',
     'Si molesta la rodilla, acortá el rango de abajo, no el de arriba.',
   ]),
   ej('ex_gemelos', 'Gemelos en máquina',
-    ['gemelos'], 5, 'peso', [
+    ['gemelos'], PASO, 'peso', [
     'Bajá el talón todo lo que dé y aguantá dos segundos abajo.',
     'Subí hasta la punta del pie, sin rebotar.',
     'El gemelo responde al rango y a la pausa, no al peso.',
   ]),
   ej('ex_face_pull', 'Face pull en polea',
-    ['hombro-posterior', 'espalda-alta'], 2.5, 'peso', [
+    ['hombro-posterior', 'espalda-alta'], PASO, 'peso', [
     'Polea a la altura de la cara. Tirá hacia la frente separando las manos.',
     'Terminá con los codos altos y las manos atrás de la línea de la oreja.',
     'Es trabajo de salud del hombro: peso liviano, ejecución impecable.',
@@ -176,38 +179,38 @@ const CATALOGO = [
 
   // ---------- sábado ----------
   ej('ex_elevacion_lateral_maquina', 'Elevación lateral en máquina',
-    ['hombro-lateral'], 2.5, 'peso', [
+    ['hombro-lateral'], PASO, 'peso', [
     'Si no hay máquina, polea unilateral. Distinto implemento que el lunes para variar el perfil de resistencia.',
     'Almohadilla apoyada en el brazo, no en el codo.',
     'Subí hasta la línea del hombro y controlá la bajada.',
   ]),
   ej('ex_press_hombro_maquina', 'Press de hombro en máquina',
-    ['hombro-anterior', 'hombro-lateral', 'triceps'], 5, 'peso', [
+    ['hombro-anterior', 'hombro-lateral', 'triceps'], PASO, 'peso', [
     'Asiento regulado para que las manijas queden a la altura del hombro, no arriba.',
     'Bajá hasta el hombro y frená ahí.',
     'Costillas abajo, sin arquear la lumbar.',
   ]),
   ej('ex_curl_predicador', 'Curl predicador',
-    ['biceps'], 2.5, 'peso', [
+    ['biceps'], PASO, 'peso', [
     'Axila apoyada firme contra el respaldo, hombro por delante del codo.',
     'No estires del todo el codo abajo si es la primera vez que lo hacés: entrá al rango completo de a poco.',
     'Es la posición donde el bíceps queda más estirado, por eso pega tanto.',
   ]),
   ej('ex_curl_polea_baja', 'Curl en polea baja con barra',
-    ['biceps'], 2.5, 'peso', [
+    ['biceps'], PASO, 'peso', [
     'Un paso atrás de la polea para que haya tensión desde la primera repetición.',
     'Codos pegados y quietos.',
     'Bajá controlado hasta estirar, sin dejar que la torre te tire del brazo.',
   ]),
   ej('ex_fondos_asistidos', 'Fondos en máquina asistida',
-    ['triceps', 'pecho', 'hombro-anterior'], 5, 'asistido', [
+    ['triceps', 'pecho', 'hombro-anterior'], PASO, 'asistido', [
     'Torso vertical para cargar el tríceps. Inclinado adelante pasa a ser pecho.',
     'Bajá hasta que el codo llegue a 90° y no más, sobre todo volviendo de un parate.',
     'Hombros lejos de las orejas todo el recorrido.',
     'Acá el número es la ayuda de la máquina: bajarlo es progresar.',
   ]),
   ej('ex_triceps_unilateral_polea', 'Extensión de tríceps unilateral en polea',
-    ['triceps'], 2.5, 'peso', [
+    ['triceps'], PASO, 'peso', [
     'Agarre supino (palma hacia arriba) para pegarle a la porción lateral.',
     'El codo no se mueve del costado.',
     'Sirve para emparejar diferencias entre brazos: igualá repeticiones, no peso.',

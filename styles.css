@@ -23,20 +23,30 @@
   --safe-b:env(safe-area-inset-bottom,0px);
 }
 *,*::before,*::after{box-sizing:border-box}
-html,body{height:100%}
+
+/* La página no se mueve nunca: se ancla el body y scrollean solo los
+   contenedores internos. Sin esto, en iOS el dedo arrastra el documento
+   entero en vez del contenido de la pantalla. */
+html{height:100%;overflow:hidden}
 body{
-  margin:0;background:var(--bg);color:var(--fg);font-family:var(--ui);
+  margin:0;position:fixed;inset:0;width:100%;height:100%;overflow:hidden;
+  background:var(--bg);color:var(--fg);font-family:var(--ui);
   -webkit-font-smoothing:antialiased;overscroll-behavior:none;
   -webkit-text-size-adjust:100%;
+}
+
+/* Todo lo que scrollea, scrollea solo: el gesto no se propaga al documento. */
+.scr-scroll,.train-mid,.sheet-body,[data-scroll]{
+  overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;
 }
 button{font-family:inherit;border:0;background:none;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent;padding:0}
 input,textarea{font-family:inherit;-webkit-tap-highlight-color:transparent}
 .num{font-family:var(--num);font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
 
 /* ---------- estructura ---------- */
-#app{display:flex;flex-direction:column;height:100dvh;padding-top:var(--safe-t)}
+#app{display:flex;flex-direction:column;height:100%;padding-top:var(--safe-t);overflow:hidden}
 .scr{flex:1;min-height:0;display:flex;flex-direction:column;padding:0 20px;overflow:hidden}
-.scr-scroll{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:16px}
+.scr-scroll{flex:1;min-height:0;padding-bottom:16px}
 .hd{display:flex;align-items:center;justify-content:space-between;height:48px;flex:none}
 .hd h1{font-size:26px;font-weight:700;letter-spacing:-.02em;font-stretch:112%;margin:0}
 .hd-back{display:flex;align-items:center;gap:10px;height:48px;flex:none}
@@ -131,7 +141,7 @@ input,textarea{font-family:inherit;-webkit-tap-highlight-color:transparent}
 .ex-head{margin-top:20px;display:flex;flex-direction:column;gap:8px;flex:none}
 .ex-head h2{font-size:30px;font-weight:600;line-height:1.05;letter-spacing:-.02em;font-stretch:112%;margin:0;text-wrap:balance}
 .link{font-size:13px;font-weight:600;color:var(--fg-2);border-bottom:1px solid var(--line);align-self:flex-start;padding-bottom:2px;background:none}
-.train-mid{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:12px;margin-top:18px;padding-bottom:4px}
+.train-mid{flex:1;min-height:0;display:flex;flex-direction:column;gap:12px;margin-top:18px;padding-bottom:4px}
 .train-foot{display:flex;flex-direction:column;gap:10px;flex:none;padding-top:14px}
 .btn.completar{height:68px;border-radius:var(--r);background:var(--acc);color:#0B0B0D;font-size:19px;font-weight:700;letter-spacing:.01em;border:0}
 .btn.completar:active{transform:translateY(1px);background:var(--acc)}
@@ -150,7 +160,7 @@ input,textarea{font-family:inherit;-webkit-tap-highlight-color:transparent}
 .dale span{font-size:17px;font-weight:600;color:rgba(11,11,13,.62)}
 
 /* ---------- hojas ---------- */
-.scrim{position:fixed;inset:0;background:rgba(8,8,10,.72);z-index:60;animation:fade .16s ease}
+.scrim{position:fixed;inset:0;background:rgba(8,8,10,.72);z-index:60;animation:fade .16s ease;touch-action:none}
 .sheet{position:fixed;left:0;right:0;bottom:0;max-height:92dvh;background:var(--surf-1);border-top:1px solid var(--line);
   border-radius:24px 24px 0 0;z-index:61;display:flex;flex-direction:column;padding-bottom:var(--safe-b);animation:up .2s cubic-bezier(.2,.8,.3,1)}
 .sheet.tall{top:calc(60px + var(--safe-t));max-height:none}
@@ -158,7 +168,7 @@ input,textarea{font-family:inherit;-webkit-tap-highlight-color:transparent}
 .grab{width:40px;height:4px;border-radius:2px;background:var(--line);align-self:center;flex:none}
 .sheet-title{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
 .sheet-title h2{font-size:28px;font-weight:600;letter-spacing:-.02em;font-stretch:112%;margin:0}
-.sheet-body{flex:1;min-height:0;overflow-y:auto;padding:0 20px 24px;display:flex;flex-direction:column;gap:20px}
+.sheet-body{flex:1;min-height:0;padding:0 20px 24px;display:flex;flex-direction:column;gap:20px}
 .sheet-foot{flex:none;padding:12px 20px 20px;border-top:1px solid var(--line);display:flex;gap:10px}
 @keyframes up{from{transform:translateY(14px);opacity:.6}to{transform:none;opacity:1}}
 @keyframes fade{from{opacity:0}to{opacity:1}}

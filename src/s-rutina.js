@@ -3,6 +3,7 @@ import {
   icono, chev,
 } from './ui.js';
 import { S, ir, mutar, volver } from './app.js';
+import { guardar } from './db.js';
 import {
   MUSCULOS, labelMusculo, diaPorId, versionActual, uid, fRango, fEsfuerzo,
 } from './data.js';
@@ -20,6 +21,26 @@ function detalleItem(db, it) {
   const esf = fEsfuerzo(it.rirMin, it.rirMax);
   return `${it.series} × ${fRango(it.repsMin, it.repsMax)}` +
     (esf ? ` · ${esf}` : '') + ` · descanso ${fDescanso(it.descanso)}`;
+}
+
+/**
+ * Cuántas sesiones por semana te proponés. Es contra esto que se mide la
+ * adherencia. Actualiza el número en el lugar y persiste: repintar la pantalla
+ * entera acá destruiría el botón mientras lo tenés apretado.
+ */
+function filaObjetivo(db) {
+  const val = h('span', { class: 'fval num' }, String(db.rutina.objetivoSemanal));
+  const set = (d) => {
+    db.rutina.objetivoSemanal = Math.max(1, Math.min(14, db.rutina.objetivoSemanal + d));
+    val.textContent = String(db.rutina.objetivoSemanal);
+    guardar(db);
+  };
+  return h('div', { class: 'frow' },
+    h('span', { class: 'flab' }, 'Objetivo semanal', h('small', null, 'sesiones por semana')),
+    stepBtn('−', () => set(-1), 24),
+    val,
+    stepBtn('+', () => set(+1), 24),
+  );
 }
 
 // ------------------------------------------------------------ lista de días
@@ -49,15 +70,7 @@ export function pantallaRutina(db) {
             ),
           );
         }),
-        h('div', { class: 'frow', style: 'min-height:auto;padding:14px 16px;flex-direction:column;align-items:stretch;gap:10px' },
-          h('span', { class: 'kicker' }, 'Objetivo semanal'),
-          h('div', { style: 'display:flex;align-items:center;gap:10px' },
-            h('span', { class: 'sub', style: 'flex:1' }, 'Sesiones por semana'),
-            stepBtn('−', () => mutar(d => { d.rutina.objetivoSemanal = Math.max(1, d.rutina.objetivoSemanal - 1); })),
-            h('span', { class: 'fval num' }, String(db.rutina.objetivoSemanal)),
-            stepBtn('+', () => mutar(d => { d.rutina.objetivoSemanal = Math.min(14, d.rutina.objetivoSemanal + 1); })),
-          ),
-        ),
+        filaObjetivo(db),
         h('button', {
           class: 'btn dashed',
           onclick: () => mutar(d => {
@@ -79,7 +92,7 @@ export function pantallaDia(db, ruta) {
   const dia = diaPorId(db, ruta.diaId);
   if (!dia) { queueMicrotask(volver); return h('main', { class: 'scr' }); }
   const b = borrador(db, dia.id);
-  const lista = h('div', { class: 'stack tight', style: 'flex:1;min-height:0;overflow-y:auto;padding-bottom:8px' });
+  const lista = h('div', { class: 'stack tight', 'data-scroll': '', style: 'flex:1;min-height:0;padding-bottom:8px' });
 
   const pintar = (arrastrando = null) => {
     lista.replaceChildren(
@@ -246,7 +259,7 @@ export function pantallaEditarEj(db, ruta) {
     const set = (d) => { escribir(d); val.replaceChildren(document.createTextNode(fmt(leer())), ...(unidad ? [h('span', null, ' ' + unidad)] : [])); };
     return h('div', { class: 'frow' },
       h('span', { class: 'flab' }, label, sub && h('small', null, sub)),
-      stepBtn('−', () => set(-1)), val, stepBtn('+', () => set(+1)),
+      stepBtn('−', () => set(-1), 24), val, stepBtn('+', () => set(+1), 24),
     );
   };
 

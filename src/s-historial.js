@@ -4,7 +4,7 @@ import {
 } from './ui.js';
 import { S, ir, mutar, volver } from './app.js';
 import {
-  sesionesTerminadas, historialEj, maximoEj, ultimoEj, sesionesConEj, UMBRALES,
+  sesionesTerminadas, historialEj, maximoEj, ultimoEj, sesionesConEj, UMBRALES, etiquetaCarga,
 } from './data.js';
 import { graficoLinea, graficoBarras, tarjetaGrafico, vacio } from './charts.js';
 
@@ -148,7 +148,7 @@ function hojaCorregir(db, ses, set) {
     meta: ej?.nombre ?? '',
     cuerpo: [
       h('div', { class: 'stepper' },
-        h('div', { class: 'stepper-hd' }, h('span', { class: 'kicker' }, 'Peso')),
+        h('div', { class: 'stepper-hd' }, h('span', { class: 'kicker' }, etiquetaCarga(ej))),
         h('div', { class: 'stepper-body' },
           stepBtn('−', () => { tmp.peso = Math.max(0, Math.round((tmp.peso - paso) * 2) / 2); pesoTxt.textContent = fPeso(tmp.peso); }),
           h('div', { class: 'sval' }, pesoTxt, h('span', null, 'kg')),
@@ -235,7 +235,9 @@ export function pantallaFicha(db, ruta) {
     h('div', { class: 'scr-scroll', style: 'padding-top:8px' },
       h('div', { class: 'stack' },
         h('div', { class: 'row' },
-          dato('Máximo', max ? `${fPeso(max.peso)} kg × ${max.reps} · ${fFecha(max.fecha)}` : '—'),
+          // En una máquina asistida, el mejor registro es el de MENOS ayuda.
+          dato(ej.tipo === 'asistido' ? 'Menos ayuda' : 'Máximo',
+            max ? `${fPeso(max.peso)} kg × ${max.reps} · ${fFecha(max.fecha)}` : '—'),
           dato('Último', ult ? `${fPeso(ult.peso)} kg × ${ult.reps} · ${hace(ult.fecha)}` : '—'),
         ),
 

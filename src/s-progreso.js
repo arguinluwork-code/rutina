@@ -41,7 +41,7 @@ function bloqueMusculos(db) {
 
   const crudo = seriesPorMusculo(db, desde, hasta);
   const datos = MUSCULOS
-    .map(m => ({ m, v: Math.round((crudo[m] || 0) / div * 2) / 2 }))
+    .map(({ id, label }) => ({ m: label, v: Math.round((crudo[id] || 0) / div * 2) / 2 }))
     .filter(x => x.v > 0)
     .sort((a, b) => b.v - a.v);
 

@@ -1,8 +1,9 @@
 // Arranque, estado global y navegación.
 
 import { cargar, guardar, pedirPersistencia } from './db.js';
-import { semillaInicial } from './data.js';
-import { h, vaciar, cerrarHoja, confirmar, icono } from './ui.js';
+import { semillaInicial, VERSION_DATOS } from './data.js';
+import { tomarFoto } from './db.js';
+import { h, vaciar, cerrarHoja, confirmar, icono, toast } from './ui.js';
 import { ABANDONO_MS, terminarSesion, descartarSesion } from './session.js';
 
 import { pantallaInicio } from './s-inicio.js';
@@ -107,6 +108,21 @@ async function arrancar() {
   pedirPersistencia();
   let db = await cargar();
   if (!db) { db = semillaInicial(); guardar(db); }
+
+  // Rutina nueva. Si todavía no hay nada registrado no se pierde nada al
+  // reemplazarla; si ya entrenaste, no se toca y el cambio lo hacés vos.
+  if ((db.v || 1) < VERSION_DATOS) {
+    const virgen = db.sesiones.length === 0 && !db.sesionAbierta;
+    if (virgen) {
+      db = semillaInicial();
+      guardar(db);
+    } else {
+      await tomarFoto(db, 'antes de actualizar el formato');
+      db.v = VERSION_DATOS;
+      guardar(db);
+      S.avisoRutina = true;
+    }
+  }
   S.db = db;
 
   const ses = db.sesionAbierta;
@@ -123,6 +139,10 @@ async function arrancar() {
     return;
   }
   render();
+  if (S.avisoRutina) {
+    S.avisoRutina = false;
+    toast('La rutina vieja se conservó porque ya tenés sesiones cargadas');
+  }
 }
 
 window.addEventListener('pagehide', () => { if (S.db) guardar(S.db); });

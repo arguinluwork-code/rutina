@@ -80,6 +80,23 @@ ni librerías. Es lo que hace que ande sin conexión de verdad.
   un objetivo de sesiones por semana (editable en Rutina).
 - **El gráfico semanal cuenta series efectivas por músculo**, no kilos:
   primario suma 1, secundario 0.5. Es la métrica que se usa para hipertrofia.
+- **El esfuerzo objetivo es un rango** (`rirMin`–`rirMax`). Cuando los dos
+  valores coinciden se muestra un número solo: "2 en el tanque"; si difieren,
+  "1-2 en el tanque".
+- **Hay tres tipos de carga.** En `asistido` el número de la máquina es la
+  ayuda, así que menos es mejor: el stepper se rotula "Asistencia" y la ficha
+  muestra "Menos ayuda" en vez de "Máximo". Mostrar el máximo ahí sería decir
+  exactamente lo contrario de lo que pasó.
+
+## Migración de datos
+
+`VERSION_DATOS` en `src/data.js` marca el formato. Al abrir, si la base guardada
+es más vieja:
+
+- sin sesiones registradas, se reemplaza por la semilla nueva (no hay nada que perder);
+- con sesiones, **no se toca**: se guarda una copia de seguridad, se sube el
+  número de versión y la rutina vieja queda como está. Los cambios de rutina
+  son decisión tuya, no de una actualización.
 
 ## Lo que no está construido
 

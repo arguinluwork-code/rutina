@@ -3,7 +3,9 @@ import {
   icono, chev,
 } from './ui.js';
 import { S, ir, mutar, volver } from './app.js';
-import { MUSCULOS, diaPorId, versionActual, versionN, uid } from './data.js';
+import {
+  MUSCULOS, labelMusculo, diaPorId, versionActual, uid, fRango, fEsfuerzo,
+} from './data.js';
 
 // El día se edita sobre un borrador. Guardar crea UNA versión nueva (append-only).
 function borrador(db, diaId) {
@@ -15,9 +17,9 @@ function borrador(db, diaId) {
 }
 
 function detalleItem(db, it) {
-  const ej = db.ejercicios[it.ejercicioId];
-  const rir = it.rir != null ? ` · ${it.rir} en el tanque` : '';
-  return `${it.series} × ${it.repsMin}-${it.repsMax}${rir} · descanso ${fDescanso(it.descanso)}`;
+  const esf = fEsfuerzo(it.rirMin, it.rirMax);
+  return `${it.series} × ${fRango(it.repsMin, it.repsMax)}` +
+    (esf ? ` · ${esf}` : '') + ` · descanso ${fDescanso(it.descanso)}`;
 }
 
 // ------------------------------------------------------------ lista de días
@@ -36,7 +38,8 @@ export function pantallaRutina(db) {
           return h('div', { class: 'card' },
             h('div', { class: 'card-pad' },
               h('span', { style: 'font-size:19px;font-weight:700' }, d.nombre),
-              h('span', { class: 'sub num' }, `${plural(v.items.length, 'ejercicio', 'ejercicios')}, ${series} series`),
+              d.foco && h('span', { class: 'sub' }, d.foco),
+              h('span', { class: 'tiny num' }, `${plural(v.items.length, 'ejercicio', 'ejercicios')}, ${series} series`),
             ),
             h('div', { class: 'card-foot' },
               h('button', { onclick: () => { S.borrador = null; ir({ n: 'dia', diaId: d.id }); } }, 'Editar día'),
@@ -198,7 +201,7 @@ function hojaAgregar(db, b, pintar) {
     .sort((x, y) => x.nombre.localeCompare(y.nombre, 'es'));
 
   const agregar = (ejercicioId) => {
-    b.items.push({ ejercicioId, series: 3, repsMin: 8, repsMax: 12, rir: 2, descanso: 90 });
+    b.items.push({ ejercicioId, series: 3, repsMin: 8, repsMax: 12, rirMin: 2, rirMax: 2, descanso: 90 });
     cerrarHoja(); pintar();
   };
 
@@ -219,7 +222,7 @@ function hojaAgregar(db, b, pintar) {
         libres.map(e => h('button', { class: 'listrow', onclick: () => agregar(e.id) },
           h('span', { class: 'txt' },
             h('b', null, e.nombre),
-            h('small', null, [...(e.prim || []), ...(e.sec || [])].join(', ') || 'sin músculos declarados'),
+            h('small', null, [...(e.prim || []), ...(e.sec || [])].map(labelMusculo).join(', ') || 'sin músculos declarados'),
           ),
           chev('mas'),
         )),
@@ -248,27 +251,58 @@ export function pantallaEditarEj(db, ruta) {
   };
 
   const chipsM = (nivel, clase) => h('div', { class: 'chips' },
-    MUSCULOS.map(m => {
-      const on = () => (ej[nivel] || []).includes(m);
-      const c = h('button', { class: 'chip ' + clase + (on() ? ' on' : '') }, m);
+    MUSCULOS.map(({ id, label }) => {
+      const on = () => (ej[nivel] || []).includes(id);
+      const c = h('button', { class: 'chip ' + clase + (on() ? ' on' : '') }, label);
       c.onclick = () => {
         const l = ej[nivel] = ej[nivel] || [];
-        const i = l.indexOf(m);
-        if (i >= 0) l.splice(i, 1); else l.push(m);
+        const i = l.indexOf(id);
+        if (i >= 0) l.splice(i, 1);
+        else {
+          l.push(id);
+          // Primario y secundario son excluyentes: si estaba en el otro nivel, sale.
+          const otro = nivel === 'prim' ? 'sec' : 'prim';
+          const j = (ej[otro] || []).indexOf(id);
+          if (j >= 0) ej[otro].splice(j, 1);
+        }
         c.classList.toggle('on', on());
+        if (repintarChips) repintarChips();
       };
       return c;
     }),
   );
 
+  let repintarChips = null;
+  const cajaPrim = h('div', { class: 'field', style: 'padding-top:6px' });
+  const cajaSec = h('div', { class: 'field', style: 'padding-top:6px' });
+  repintarChips = () => {
+    cajaPrim.replaceChildren(h('span', { class: 'kicker on' }, 'Músculos primarios'), chipsM('prim', ''));
+    cajaSec.replaceChildren(
+      h('span', { class: 'kicker' }, 'Músculos secundarios'),
+      h('span', { class: 'tiny' }, 'Cuentan media serie en el gráfico semanal.'),
+      chipsM('sec', 'dash'),
+    );
+  };
+  repintarChips();
+
   const nombreIn = h('input', { type: 'text', value: ej.nombre, enterkeyhint: 'done' });
   const tipsIn = h('textarea', { rows: 4, placeholder: 'Un tip por línea' }, ej.tips || '');
 
-  let tipoSel = ej.tipo;
-  const btnPeso = h('button', { class: 'chip wide' + (tipoSel === 'peso' ? ' on' : '') }, 'Peso');
-  const btnCorp = h('button', { class: 'chip wide' + (tipoSel === 'corporal' ? ' on' : '') }, 'Peso corporal');
-  btnPeso.onclick = () => { tipoSel = 'peso'; btnPeso.classList.add('on'); btnCorp.classList.remove('on'); };
-  btnCorp.onclick = () => { tipoSel = 'corporal'; btnCorp.classList.add('on'); btnPeso.classList.remove('on'); };
+  let tipoSel = ej.tipo || 'peso';
+  const TIPOS = [
+    ['peso', 'Peso'],
+    ['corporal', 'Corporal'],
+    ['asistido', 'Asistido'],
+  ];
+  const botonesTipo = TIPOS.map(([k, label]) => {
+    const b = h('button', { class: 'chip wide' + (tipoSel === k ? ' on' : '') }, label);
+    b.onclick = () => {
+      tipoSel = k;
+      for (const x of botonesTipo) x.classList.remove('on');
+      b.classList.add('on');
+    };
+    return b;
+  });
 
   const guardar = () => {
     Object.assign(it, tmp);
@@ -295,21 +329,20 @@ export function pantallaEditarEj(db, ruta) {
         filaNum('Series', null, () => tmp.series, d => { tmp.series = Math.max(1, Math.min(10, tmp.series + d)); }),
         filaNum('Reps mínimas', null, () => tmp.repsMin, d => { tmp.repsMin = Math.max(1, Math.min(tmp.repsMax, tmp.repsMin + d)); }),
         filaNum('Reps máximas', null, () => tmp.repsMax, d => { tmp.repsMax = Math.max(tmp.repsMin, Math.min(50, tmp.repsMax + d)); }),
-        filaNum('Esfuerzo objetivo', 'en el tanque', () => tmp.rir, d => { tmp.rir = Math.max(0, Math.min(5, (tmp.rir ?? 2) + d)); }),
+        filaNum('Esfuerzo mínimo', 'en el tanque', () => tmp.rirMin ?? 2,
+          d => { tmp.rirMin = Math.max(0, Math.min(tmp.rirMax ?? 5, (tmp.rirMin ?? 2) + d)); }),
+        filaNum('Esfuerzo máximo', 'en el tanque', () => tmp.rirMax ?? tmp.rirMin ?? 2,
+          d => { tmp.rirMax = Math.max(tmp.rirMin ?? 0, Math.min(5, (tmp.rirMax ?? tmp.rirMin ?? 2) + d)); }),
         filaNum('Descanso', null, () => tmp.descanso, d => { tmp.descanso = Math.max(0, Math.min(600, tmp.descanso + d * 15)); }, fDescanso),
         filaNum('Incremento de carga', null, () => ej.incremento, d => { ej.incremento = Math.max(0.5, Math.min(10, Math.round((ej.incremento + d * 0.5) * 2) / 2)); }, fPeso, 'kg'),
         h('div', { class: 'field', style: 'padding-top:6px' },
           h('span', { class: 'kicker' }, 'Tipo de carga'),
-          h('div', { class: 'row' }, btnPeso, btnCorp),
+          h('div', { class: 'row' }, botonesTipo),
+          tipoSel === 'asistido' && h('span', { class: 'tiny' },
+            'En asistido el número es la ayuda de la máquina: bajarlo es progresar.'),
         ),
-        h('div', { class: 'field', style: 'padding-top:6px' },
-          h('span', { class: 'kicker on' }, 'Músculos primarios'), chipsM('prim', ''),
-        ),
-        h('div', { class: 'field', style: 'padding-top:6px' },
-          h('span', { class: 'kicker' }, 'Músculos secundarios'),
-          h('span', { class: 'tiny' }, 'Cuentan media serie en el gráfico semanal.'),
-          chipsM('sec', 'dash'),
-        ),
+        cajaPrim,
+        cajaSec,
         h('div', { class: 'field', style: 'padding-top:6px' },
           h('span', { class: 'kicker' }, 'Tips de técnica'), tipsIn,
         ),

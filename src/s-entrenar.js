@@ -10,6 +10,7 @@ import {
   deshacer, etiquetaUndo, arrancarDescanso, restanteDescanso, ajustarDescanso,
   cortarDescanso, terminarSesion,
 } from './session.js';
+import { fRango, fEsfuerzo, etiquetaCarga } from './data.js';
 
 let tGuardar = null;
 function persistirPronto() {
@@ -68,11 +69,12 @@ function vistaEntrenar(db, ses) {
   );
 
   // --- ejercicio
-  const objetivo = s.rirObjetivo != null ? ` · Objetivo ${s.rirObjetivo} en el tanque` : '';
+  const esf = fEsfuerzo(s.rirMin, s.rirMax);
   const cabeza = h('div', { class: 'ex-head' },
     h('h2', null, ej?.nombre ?? 'Ejercicio'),
     h('div', { class: 'sub num' },
-      `Serie ${s.serieIdx + 1} de ${s.series} · ${s.repsMin}-${s.repsMax} reps${objetivo}`),
+      `Serie ${s.serieIdx + 1} de ${s.series} · ${fRango(s.repsMin, s.repsMax)} reps` +
+      (esf ? ` · Objetivo ${esf}` : '')),
     h('button', { class: 'link', onclick: () => hojaTecnica(ej) }, icono('tecnica', 14), 'Ver técnica'),
   );
 
@@ -91,7 +93,7 @@ function vistaEntrenar(db, ses) {
 
   const cardPeso = h('div', { class: 'stepper' },
     h('div', { class: 'stepper-hd' },
-      h('span', { class: 'kicker' }, ej?.tipo === 'corporal' ? 'Lastre' : 'Peso'),
+      h('span', { class: 'kicker' }, etiquetaCarga(ej)),
       h('span', { class: 'tiny num' }, previoTxt),
     ),
     h('div', { class: 'stepper-body' },
@@ -104,7 +106,7 @@ function vistaEntrenar(db, ses) {
   const cardReps = h('div', { class: 'stepper' },
     h('div', { class: 'stepper-hd' },
       h('span', { class: 'kicker' }, 'Reps'),
-      h('span', { class: 'tiny num' }, `rango ${s.repsMin}-${s.repsMax}`),
+      h('span', { class: 'tiny num' }, `rango ${fRango(s.repsMin, s.repsMax)}`),
     ),
     h('div', { class: 'stepper-body' },
       stepBtn('−', () => { ajustarDraft(ses, 'reps', -1); repsTxt.textContent = String(d.reps); persistirPronto(); }),

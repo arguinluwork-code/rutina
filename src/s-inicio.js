@@ -59,16 +59,21 @@ function bloqueEmpezar(db) {
     h('div', { class: 'stack tight' },
       h('span', { class: 'kicker', style: 'padding-left:2px' }, 'Sesión de hoy'),
       h('div', { class: 'stack', style: 'gap:6px' },
-        dias.map(d => h('button', {
-          class: 'listrow', style: 'min-height:56px;padding:0 16px;' +
-            (S.diaSel === d.id ? 'border-color:var(--fg);background:var(--surf-2)' : 'background:transparent'),
-          onclick: () => { S.diaSel = d.id; mutar(() => {}); },
-        },
-          h('span', {
-            style: 'flex:1;font-size:16px;font-weight:600;color:' + (S.diaSel === d.id ? 'var(--fg)' : 'var(--fg-2)'),
-          }, d.nombre),
-          h('span', { class: 'tiny' }, plural(d.versiones.find(v => v.n === d.versionActual).items.length, 'ejercicio', 'ejercicios')),
-        )),
+        dias.map(d => {
+          const sel = S.diaSel === d.id;
+          const items = d.versiones.find(v => v.n === d.versionActual).items;
+          return h('button', {
+            class: 'listrow', style: 'min-height:58px;padding:8px 16px;' +
+              (sel ? 'border-color:var(--fg);background:var(--surf-2)' : 'background:transparent'),
+            onclick: () => { S.diaSel = d.id; mutar(() => {}); },
+          },
+            h('span', { class: 'txt' },
+              h('b', { style: 'font-size:16px;color:' + (sel ? 'var(--fg)' : 'var(--fg-2)') }, d.nombre),
+              d.foco && h('small', null, d.foco),
+            ),
+            h('span', { class: 'tiny num' }, `${items.length} ej`),
+          );
+        }),
       ),
     ),
     h('button', {

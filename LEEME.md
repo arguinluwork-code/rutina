@@ -2,7 +2,18 @@
 
 App personal de entrenamiento. PWA, sin build, sin dependencias, sin backend.
 
-## Correrla
+**En línea:** https://arguinluwork-code.github.io/rutina/
+
+## Desplegar
+
+GitHub Pages sirve la rama `main` desde la raíz. Cada `git push` la actualiza
+en un minuto. No hay build: son los archivos tal cual.
+
+Después de un cambio en el código conviene subirle el número a `CACHE` en
+`sw.js` (`rutina-v3` → `rutina-v4`), porque si no los teléfonos que ya la
+tienen instalada siguen con la versión vieja del caché.
+
+## Correrla local
 
 ```
 node serve.js
@@ -31,9 +42,11 @@ copia de seguridad recuperable desde Datos.
 
 ```
 index.html  styles.css       armazón y sistema de diseño
+fonts/                       Archivo variable, servida local (no depende de Google)
 serve.js                     servidor estático para la red local
 sw.js  manifest.webmanifest  instalación y offline
 hacer-iconos.js              regenera los PNG del ícono
+scripts/generar-iconos.js    regenera src/icons.js desde lucide-static
 
 src/db.js          persistencia, copias de seguridad
 src/data.js        modelo, rutina inicial, selectores y cuentas
@@ -41,8 +54,12 @@ src/session.js     motor de la sesión: cursor, deshacer, descanso
 src/ui.js          helpers de DOM, formato, audio, wake lock
 src/charts.js      gráficos en SVG
 src/app.js         estado global y navegación
+src/icons.js       íconos de Lucide (ISC), empaquetados
 src/s-*.js         una pantalla por archivo
 ```
+
+Nada se carga desde la red en tiempo de ejecución: ni tipografías, ni íconos,
+ni librerías. Es lo que hace que ande sin conexión de verdad.
 
 ## Decisiones que conviene conocer
 

@@ -2,10 +2,11 @@
 // Solo se registra sobre https (o localhost); sobre http en la red local la app
 // funciona igual, nada más que sin caché offline.
 
-const CACHE = 'rutina-v2';
+const CACHE = 'rutina-v3';
 const ARCHIVOS = [
   './', './index.html', './styles.css', './manifest.webmanifest',
   './icon.svg', './icon-180.png', './icon-512.png',
+  './fonts/archivo-latin.woff2', './fonts/archivo-latin-ext.woff2',
   './src/app.js', './src/db.js', './src/data.js', './src/ui.js', './src/session.js', './src/icons.js',
   './src/charts.js', './src/s-inicio.js', './src/s-entrenar.js', './src/s-rutina.js',
   './src/s-historial.js', './src/s-progreso.js', './src/s-datos.js',

@@ -1,0 +1,35 @@
+// Cachea el armazón para que la app abra sin conexión.
+// Solo se registra sobre https (o localhost); sobre http en la red local la app
+// funciona igual, nada más que sin caché offline.
+
+const CACHE = 'rutina-v2';
+const ARCHIVOS = [
+  './', './index.html', './styles.css', './manifest.webmanifest',
+  './icon.svg', './icon-180.png', './icon-512.png',
+  './src/app.js', './src/db.js', './src/data.js', './src/ui.js', './src/session.js', './src/icons.js',
+  './src/charts.js', './src/s-inicio.js', './src/s-entrenar.js', './src/s-rutina.js',
+  './src/s-historial.js', './src/s-progreso.js', './src/s-datos.js',
+];
+
+self.addEventListener('install', (e) => {
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ARCHIVOS)).then(() => self.skipWaiting()));
+});
+
+self.addEventListener('activate', (e) => {
+  e.waitUntil(caches.keys()
+    .then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k))))
+    .then(() => self.clients.claim()));
+});
+
+self.addEventListener('fetch', (e) => {
+  if (e.request.method !== 'GET') return;
+  const url = new URL(e.request.url);
+  if (url.origin !== location.origin) return; // la tipografía va por la red
+  e.respondWith(
+    caches.match(e.request).then(hit => hit || fetch(e.request).then(res => {
+      const copia = res.clone();
+      caches.open(CACHE).then(c => c.put(e.request, copia));
+      return res;
+    }).catch(() => caches.match('./index.html'))),
+  );
+});

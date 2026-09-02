@@ -3,8 +3,8 @@
 import { cargar, guardar, pedirPersistencia } from './db.js';
 import { semillaInicial, VERSION_DATOS, PASO } from './data.js';
 import { tomarFoto } from './db.js';
-import { h, vaciar, cerrarHoja, confirmar, icono, toast } from './ui.js';
-import { ABANDONO_MS, terminarSesion, descartarSesion } from './session.js';
+import { h, vaciar, cerrarHoja, confirmar, icono, toast, mmss, pitido, mantenerPantalla } from './ui.js';
+import { ABANDONO_MS, terminarSesion, descartarSesion, restanteDescanso } from './session.js';
 
 import { pantallaInicio } from './s-inicio.js';
 import { pantallaEntrenar } from './s-entrenar.js';
@@ -18,7 +18,8 @@ export const S = {
   tab: 'entrenar',
   ruta: { n: 'inicio' },
   pila: [],
-  onTick: null,
+  // Cada repintado limpia esta lista; lo que necesite reloj se vuelve a anotar.
+  tickers: [],
 };
 
 const RAIZ = { entrenar: 'inicio', rutina: 'rutina', historial: 'historial', progreso: 'progreso' };
@@ -76,15 +77,58 @@ export function irATab(tab) {
 
 export function render() {
   const app = document.getElementById('app');
-  S.onTick = null;
+  S.tickers = [];
   const fn = PANTALLAS[S.ruta.n] || pantallaInicio;
   const cuerpo = fn(S.db, S.ruta);
-  const sinTabs = S.ruta.n === 'entrenar';
   vaciar(app);
-  app.append(cuerpo);
-  if (!sinTabs) app.append(barraTabs());
+  // La barra de tabs no se esconde nunca, ni entrenando: se puede ir a mirar el
+  // historial y volver sin perder nada.
+  app.append(cuerpo, franjaSesion(), barraTabs());
   document.getElementById('overlay-root').replaceChildren();
-  if (S.overlay) document.getElementById('overlay-root').append(S.overlay());
+}
+
+/**
+ * Franja pegada arriba de los tabs con el entrenamiento en curso. Aparece
+ * cuando estás en cualquier pantalla que no sea la de entrenar, y si hay
+ * descanso corriendo muestra la cuenta regresiva. Tocarla te devuelve.
+ */
+function franjaSesion() {
+  const ses = S.db?.sesionAbierta;
+  if (!ses || S.ruta.n === 'entrenar') return null;
+
+  const set = ses.sets.find(x => x.id === ses.cursor) || ses.sets[0];
+  const ej = S.db.ejercicios[set?.ejercicioId];
+  const hechas = ses.sets.filter(x => x.estado === 'hecha').length;
+
+  const barra = h('span', { class: 'franja-barra' });
+  const reloj = h('span', { class: 'franja-reloj num' });
+  const sub = h('small', null, '');
+
+  const pintar = () => {
+    const resta = restanteDescanso(ses);
+    const descansando = !!ses.rest && resta > 0;
+    reloj.textContent = descansando ? mmss(resta) : '';
+    reloj.hidden = !descansando;
+    barra.style.width = descansando ? (resta / ses.rest.dur * 100) + '%' : '0%';
+    sub.textContent = descansando
+      ? `Descanso · serie ${(set?.serieIdx ?? 0) + 1}`
+      : `Serie ${(set?.serieIdx ?? 0) + 1} de ${set?.series ?? 0} · ${hechas} hechas`;
+  };
+  pintar();
+  S.tickers.push(pintar);
+
+  return h('button', {
+    class: 'franja',
+    onclick: () => { S.tab = 'entrenar'; S.pila = []; S.ruta = { n: 'entrenar' }; render(); },
+  },
+    barra,
+    h('span', { class: 'franja-txt' },
+      h('b', null, ej?.nombre ?? 'Entrenamiento'),
+      sub,
+    ),
+    reloj,
+    icono('atras', 18, 2.25),
+  );
 }
 
 function barraTabs() {
@@ -99,8 +143,20 @@ function barraTabs() {
   );
 }
 
-// Un solo latido para todo lo que depende del reloj (el descanso).
-setInterval(() => { if (S.onTick) S.onTick(); }, 250);
+// Un solo latido para todo lo que depende del reloj.
+setInterval(() => {
+  // El aviso de fin de descanso es global: suena estés en la pantalla que estés,
+  // porque durante el descanso es normal irse a mirar otra cosa.
+  const ses = S.db?.sesionAbierta;
+  if (ses?.rest && !ses.rest.avisado && restanteDescanso(ses) <= 0) {
+    ses.rest.avisado = true;
+    pitido();
+    mantenerPantalla(false);
+    guardar(S.db);
+    if (S.ruta.n !== 'entrenar') toast('Se terminó el descanso');
+  }
+  for (const t of S.tickers) t();
+}, 250);
 
 // ---------- migraciones ----------
 

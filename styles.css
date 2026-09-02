@@ -266,3 +266,24 @@ input,textarea{font-family:inherit;-webkit-tap-highlight-color:transparent}
 .btn svg{opacity:.9}
 .btn.primary svg,.btn.completar svg,.btn.big svg{opacity:1}
 .hr{height:1px;background:var(--line);border:0;margin:4px 0}
+
+/* ---------- franja del entrenamiento en curso ---------- */
+.franja{
+  flex:none;position:relative;display:flex;align-items:center;gap:12px;
+  width:100%;min-height:58px;padding:8px 16px;text-align:left;
+  background:var(--surf-2);border-top:1px solid var(--line);overflow:hidden;
+}
+.franja:active{background:#2A2D33}
+.franja-barra{
+  position:absolute;top:0;left:0;height:2px;background:var(--acc);
+  transition:width .25s linear;
+}
+.franja-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.franja-txt b{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.franja-txt small{font-size:12px;color:var(--fg-2);font-variant-numeric:tabular-nums}
+.franja-reloj{font-size:22px;font-weight:600;font-stretch:118%;color:var(--acc);flex:none}
+.franja .chev,.franja svg{color:var(--fg-2)}
+
+/* El descanso deja la barra de tabs a la vista: se puede ir a mirar otra cosa
+   mientras corre. El aviso de fin (¡Dale!) sí toma la pantalla entera. */
+.rest{bottom:calc(68px + var(--safe-b))}

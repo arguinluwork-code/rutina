@@ -221,21 +221,18 @@ function vistaDescanso(db, ses) {
   };
   pintar();
 
-  S.onTick = () => {
+  // El pitido lo dispara el latido global de app.js, para que suene también si
+  // te fuiste a otra pestaña. Acá solo se anima el anillo.
+  S.tickers.push(() => {
     const resta = restanteDescanso(ses);
-    if (resta <= 0) {
-      if (!ses.rest.avisado) { ses.rest.avisado = true; pitido(); persistirPronto(); }
-      S.onTick = null;
-      mutar(() => {});
-      return;
-    }
+    if (resta <= 0) { mutar(() => {}); return; }
     const c = wrap.querySelector('circle:last-child');
     if (c) {
       const C = 2 * Math.PI * 104;
       c.setAttribute('stroke-dashoffset', String(C * (1 - resta / ses.rest.dur)));
     }
     reloj.textContent = mmss(resta);
-  };
+  });
 
   const ajustar = (seg) => { ajustarDescanso(ses, seg); persistirPronto(); pintar(); };
 
@@ -262,7 +259,6 @@ function vistaDescanso(db, ses) {
 }
 
 function vistaDale(db, ses) {
-  if (!ses.rest.avisado) { ses.rest.avisado = true; pitido(); persistirPronto(); }
   const s = ses.sets.find(x => x.id === ses.cursor);
   const ej = db.ejercicios[s?.ejercicioId];
   const seguir = () => { mantenerPantalla(false); mutar(() => cortarDescanso(ses)); };

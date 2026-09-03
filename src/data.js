@@ -17,7 +17,7 @@
 import { MUSCULOS, musculo, labelMusculo, UMBRAL_ESTIMULO } from './musculos.js';
 export { MUSCULOS, musculo, labelMusculo, UMBRAL_ESTIMULO };
 
-export const VERSION_DATOS = 5;
+export const VERSION_DATOS = 6;
 
 /** Salto de carga por tap. Editable por variante. */
 export const PASO = 2.5;
@@ -256,6 +256,14 @@ function it(ejercicioId, varianteId, series, repsMin, repsMax, rirMin, rirMax, d
  * concentrar todo el lateral en el bloque de Hombros lo dejaba en 5 de 14 en
  * cuanto entrenabas piernas en su lugar.
  *
+ * Los rangos de repeticiones NO son una afirmación sobre crecimiento: con el
+ * esfuerzo igualado, de 5 a 30 repeticiones da prácticamente lo mismo. Son una
+ * instrucción para elegir el peso, y se agrupan en cuatro por el motivo que de
+ * verdad limita en cada caso: 5-10 en barra por técnica y articulación, 8-12 en
+ * compuestos de máquina, 8-15 en aislados con carga controlable, y 12-20 donde
+ * la forma se rompe antes que la carga, como la elevación lateral. Lo que sí es
+ * una afirmación sobre crecimiento es el RIR.
+ *
  * Los descansos siguen la evidencia (Schoenfeld 2016: los largos rinden más):
  * 150 s en el press pesado, 120 en compuestos, 90 en aislados. Con eso un
  * bloque de 22 series cae en unos 50 minutos, así que no hay motivo para
@@ -268,51 +276,51 @@ function plantillasIniciales(ts) {
   });
   return [
     p('pl_empuje', 'Empuje', 'Pecho, hombro y tríceps', [
-      it('ex_press_banca', 'v_banca_barra', 4, 6, 10, 2, 2, 150),
-      it('ex_press_inclinado', 'v_inclinado_maquina', 4, 10, 12, 1, 2, 120),
-      it('ex_elevacion_lateral', 'v_lateral_polea', 5, 10, 15, 1, 1, 90),
-      it('ex_triceps_overhead', 'v_overhead_soga', 5, 10, 15, 0, 1, 90),
-      it('ex_pec_deck', 'v_pecdeck_maquina', 4, 12, 15, 0, 1, 90),
+      it('ex_press_banca', 'v_banca_barra', 4, 5, 10, 2, 2, 150),
+      it('ex_press_inclinado', 'v_inclinado_maquina', 4, 8, 12, 1, 2, 120),
+      it('ex_elevacion_lateral', 'v_lateral_polea', 5, 12, 20, 1, 1, 90),
+      it('ex_triceps_overhead', 'v_overhead_soga', 5, 8, 15, 0, 1, 90),
+      it('ex_pec_deck', 'v_pecdeck_maquina', 4, 8, 15, 0, 1, 90),
     ]),
     p('pl_tiron', 'Tirón', 'Espalda y bíceps', [
       it('ex_jalon', 'v_jalon_neutro', 4, 8, 12, 2, 2, 120),
       it('ex_remo_apoyo', 'v_remo_t', 4, 8, 12, 2, 2, 120),
-      it('ex_curl_inclinado', 'v_curlinc_mancuernas', 5, 10, 12, 1, 1, 90),
-      it('ex_pullover', 'v_pullover_polea', 3, 12, 15, 0, 1, 90),
+      it('ex_curl_inclinado', 'v_curlinc_mancuernas', 5, 8, 15, 1, 1, 90),
+      it('ex_pullover', 'v_pullover_polea', 3, 8, 15, 0, 1, 90),
       it('ex_elevacion_lateral', 'v_lateral_mancuernas', 3, 12, 20, 0, 1, 90),
-      it('ex_face_pull', 'v_facepull_polea', 3, 15, 20, 0, 1, 90),
+      it('ex_face_pull', 'v_facepull_polea', 3, 12, 20, 0, 1, 90),
     ]),
     p('pl_brazos', 'Brazos', 'La prioridad de la rutina', [
-      it('ex_curl_inclinado', 'v_curlinc_mancuernas', 4, 10, 12, 1, 1, 90),
-      it('ex_triceps_overhead', 'v_overhead_soga', 4, 10, 12, 1, 1, 90),
-      it('ex_curl_predicador', 'v_predicador_maquina', 4, 12, 15, 0, 1, 90),
-      it('ex_pushdown', 'v_pushdown_barra', 4, 12, 15, 0, 1, 90),
-      it('ex_elevacion_lateral', 'v_lateral_polea', 3, 12, 15, 1, 1, 90),
-      it('ex_curl_martillo', 'v_martillo_mancuernas', 3, 12, 15, 0, 1, 90),
+      it('ex_curl_inclinado', 'v_curlinc_mancuernas', 4, 8, 15, 1, 1, 90),
+      it('ex_triceps_overhead', 'v_overhead_soga', 4, 8, 15, 1, 1, 90),
+      it('ex_curl_predicador', 'v_predicador_maquina', 4, 8, 15, 0, 1, 90),
+      it('ex_pushdown', 'v_pushdown_barra', 4, 8, 15, 0, 1, 90),
+      it('ex_elevacion_lateral', 'v_lateral_polea', 3, 12, 20, 1, 1, 90),
+      it('ex_curl_martillo', 'v_martillo_mancuernas', 3, 8, 15, 0, 1, 90),
     ]),
     p('pl_hombros', 'Hombros', 'Lateral y posterior', [
       it('ex_elevacion_lateral', 'v_lateral_maquina', 6, 12, 20, 1, 1, 90),
-      it('ex_press_hombro', 'v_presshombro_mancuernas', 4, 10, 12, 2, 2, 120),
-      it('ex_posterior', 'v_posterior_maquina', 4, 15, 20, 0, 1, 90),
-      it('ex_elevacion_lateral', 'v_lateral_mancuernas', 3, 12, 15, 0, 1, 90),
-      it('ex_curl_martillo', 'v_martillo_mancuernas', 3, 12, 15, 0, 1, 90),
-      it('ex_triceps_unilateral', 'v_triuni_polea', 2, 12, 15, 0, 1, 90),
+      it('ex_press_hombro', 'v_presshombro_mancuernas', 4, 8, 12, 2, 2, 120),
+      it('ex_posterior', 'v_posterior_maquina', 4, 12, 20, 0, 1, 90),
+      it('ex_elevacion_lateral', 'v_lateral_mancuernas', 3, 12, 20, 0, 1, 90),
+      it('ex_curl_martillo', 'v_martillo_mancuernas', 3, 8, 15, 0, 1, 90),
+      it('ex_triceps_unilateral', 'v_triuni_polea', 2, 8, 15, 0, 1, 90),
     ]),
     p('pl_piernas', 'Piernas y core', 'Mantenimiento, con algo de brazo', [
-      it('ex_prensa', 'v_prensa_45', 4, 10, 15, 2, 2, 150),
-      it('ex_hack', 'v_hack_maquina', 4, 10, 12, 2, 2, 120),
-      it('ex_curl_femoral', 'v_femoral_sentado', 4, 10, 15, 1, 1, 90),
+      it('ex_prensa', 'v_prensa_45', 4, 8, 12, 2, 2, 150),
+      it('ex_hack', 'v_hack_maquina', 4, 8, 12, 2, 2, 120),
+      it('ex_curl_femoral', 'v_femoral_sentado', 4, 8, 15, 1, 1, 90),
       it('ex_gemelos', 'v_gemelos_maquina', 4, 12, 20, 0, 1, 90),
-      it('ex_elevacion_lateral', 'v_lateral_polea', 3, 12, 15, 1, 1, 90),
+      it('ex_elevacion_lateral', 'v_lateral_polea', 3, 12, 20, 1, 1, 90),
       it('ex_abdomen', 'v_abdomen_polea', 3, 12, 20, 1, 1, 90),
     ]),
     p('pl_torso', 'Torso completo', 'Para las semanas de 3 días', [
       it('ex_press_inclinado', 'v_inclinado_maquina', 4, 8, 12, 2, 2, 120),
       it('ex_jalon', 'v_jalon_neutro', 4, 8, 12, 2, 2, 120),
-      it('ex_elevacion_lateral', 'v_lateral_polea', 5, 12, 15, 1, 1, 90),
-      it('ex_remo_apoyo', 'v_remo_t', 4, 10, 12, 2, 2, 120),
-      it('ex_triceps_overhead', 'v_overhead_soga', 4, 12, 15, 0, 1, 90),
-      it('ex_curl_inclinado', 'v_curlinc_mancuernas', 3, 12, 15, 0, 1, 90),
+      it('ex_elevacion_lateral', 'v_lateral_polea', 5, 12, 20, 1, 1, 90),
+      it('ex_remo_apoyo', 'v_remo_t', 4, 8, 12, 2, 2, 120),
+      it('ex_triceps_overhead', 'v_overhead_soga', 4, 8, 15, 0, 1, 90),
+      it('ex_curl_inclinado', 'v_curlinc_mancuernas', 3, 8, 15, 0, 1, 90),
     ]),
   ];
 }

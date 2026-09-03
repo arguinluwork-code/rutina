@@ -17,7 +17,7 @@
 import { MUSCULOS, musculo, labelMusculo, UMBRAL_ESTIMULO } from './musculos.js';
 export { MUSCULOS, musculo, labelMusculo, UMBRAL_ESTIMULO };
 
-export const VERSION_DATOS = 7;
+export const VERSION_DATOS = 8;
 
 /** Salto de carga por tap. Editable por variante. */
 export const PASO = 2.5;
@@ -82,8 +82,9 @@ const MOVIMIENTOS = [
   mov('ex_triceps_overhead', 'Extensión de tríceps sobre la cabeza', ['triceps'], [
     'Con el brazo arriba la porción larga queda estirada, y es la que más crece así (Maeo 2022).',
     'Alejate de la polea hasta sentir el estiramiento antes de empezar.',
-    'Codos apuntando al frente y cerrados, no abiertos a los costados.',
+    'Codos apuntando al frente y cerrados, no abiertos a los costados: si se abren, el hombro rota y ahí aparece la molestia.',
     'Prioridad al rango, no al peso.',
+    'Si te molesta atrás del hombro o el manguito: acortá el fondo, alejate más de la polea, o pasate a la variante acostada, que deja el hombro a 90 grados en vez de arriba del todo.',
   ]),
   mov('ex_triceps_unilateral', 'Extensión de tríceps unilateral', ['triceps'], [
     'Agarre supino, palma hacia arriba, para pegarle a la porción lateral.',
@@ -204,6 +205,13 @@ const VARIANTES = [
   va('v_overhead_soga', 'ex_triceps_overhead', 'Polea con soga'),
   va('v_overhead_unilateral', 'ex_triceps_overhead', 'Polea unilateral', { factor: 0.55 }),
   va('v_overhead_mancuerna', 'ex_triceps_overhead', 'Mancuerna a dos manos', { factor: 0.9 }),
+  // El hombro flexionado a 180 grados es lo que molesta el manguito. Acostado
+  // queda cerca de 90 y el tríceps sigue estirado: se conserva casi todo el
+  // beneficio sin la posición comprometida.
+  va('v_overhead_acostado', 'ex_triceps_overhead', 'Acostado con barra Z', { factor: 1.4,
+    nota: 'Hombro a 90 grados en vez de arriba del todo. La opción si el manguito molesta.' }),
+  va('v_overhead_inclinado', 'ex_triceps_overhead', 'En banco inclinado', { factor: 1.2,
+    nota: 'Intermedio: más estiramiento que acostado, menos exigencia de hombro que arriba.' }),
 
   va('v_triuni_polea', 'ex_triceps_unilateral', 'Polea, agarre supino'),
 
@@ -324,6 +332,17 @@ function plantillasIniciales(ts) {
     ]),
   ];
 }
+/**
+ * Catálogo de fábrica. Se expone para poder sumar movimientos y variantes
+ * nuevos a una base que ya tiene entrenamientos cargados, sin resembrar nada.
+ */
+export function catalogoBase() {
+  return {
+    ejercicios: JSON.parse(JSON.stringify(MOVIMIENTOS)),
+    variantes: JSON.parse(JSON.stringify(VARIANTES)),
+  };
+}
+
 export function semillaInicial() {
   const ts = Date.now();
   const ejercicios = {};

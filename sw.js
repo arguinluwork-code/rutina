@@ -2,7 +2,7 @@
 // Solo se registra sobre https (o localhost); sobre http en la red local la app
 // funciona igual, nada más que sin caché offline.
 
-const CACHE = 'rutina-v15';
+const CACHE = 'rutina-v16';
 const ARCHIVOS = [
   './', './index.html', './styles.css', './manifest.webmanifest',
   './icon.svg', './icon-180.png', './icon-512.png',

@@ -1,7 +1,7 @@
 // Arranque, estado global y navegación.
 
 import { cargar, guardar, pedirPersistencia, tomarFoto } from './db.js';
-import { semillaInicial, VERSION_DATOS, PASO } from './data.js';
+import { semillaInicial, catalogoBase, VERSION_DATOS, PASO } from './data.js';
 import { h, vaciar, cerrarHoja, confirmar, icono, toast, mmss, pitido, mantenerPantalla } from './ui.js';
 import { ABANDONO_MS, terminarSesion, descartarSesion, restanteDescanso } from './session.js';
 
@@ -233,6 +233,19 @@ async function migrar(db) {
     S.avisoModelo = true;
   }
 
+  // De v8 en adelante, los movimientos y variantes nuevos del catálogo se suman
+  // a lo que ya tenés en vez de resembrar. Nunca pisan lo existente: si
+  // renombraste algo o le cambiaste el incremento, eso es tuyo y queda.
+  const base = catalogoBase();
+  let sumados = 0;
+  for (const m of base.ejercicios) {
+    if (!db.ejercicios[m.id]) { db.ejercicios[m.id] = m; sumados++; }
+  }
+  for (const v of base.variantes) {
+    if (!db.variantes[v.id]) { db.variantes[v.id] = v; sumados++; }
+  }
+  if (sumados) S.avisoCatalogo = sumados;
+
   db.v = VERSION_DATOS;
   guardar(db);
   return db;
@@ -265,6 +278,10 @@ async function arrancar() {
   if (S.avisoModelo) {
     S.avisoModelo = false;
     toast('Tus días pasaron a ser plantillas y se conservó todo el historial');
+  } else if (S.avisoCatalogo) {
+    const n = S.avisoCatalogo;
+    S.avisoCatalogo = 0;
+    toast(`Se sumaron ${n} opciones nuevas al catálogo`);
   }
   nube.alCambiarEstado(() => render());
   resolverNube();

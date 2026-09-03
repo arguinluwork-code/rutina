@@ -7,10 +7,14 @@
 // que la app no pide NADA a la red en tiempo de ejecución, que es lo que la
 // hace funcionar sin conexión. Contra PostgREST y GoTrue alcanza con fetch.
 //
-// La sincronización es deliberadamente simple: respaldar sube todo (idempotente,
-// por upsert) y restaurar baja todo y reconstruye. Para un usuario con un
-// teléfono, un motor de conflictos sería complejidad que nunca se ejercita; y
-// cuando hay divergencia real, se pregunta en vez de resolver en silencio.
+// La cuenta es un CÓDIGO, no un login: una sola cosa para escribir y la misma
+// en cualquier teléfono. Abajo sigue siendo auth de verdad (el código es la
+// credencial), porque lo que protege los datos no es que sean poco interesantes
+// sino que nadie más pueda borrarlos.
+//
+// La sincronización es automática: cada cambio se sube solo y al abrir con un
+// código en un teléfono sin datos se baja todo. Sube por upsert, así que es
+// idempotente. Cuando hay divergencia real se pregunta, no se pisa en silencio.
 
 const URL_BASE = 'https://iaryulfcoisvkytfbuhk.supabase.co';
 // Clave pública: va en el cliente por diseño. Lo que protege los datos es RLS,
@@ -18,7 +22,12 @@ const URL_BASE = 'https://iaryulfcoisvkytfbuhk.supabase.co';
 const ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlhcnl1bGZjb2lzdmt5dGZidWhrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg0NjUwNTAsImV4cCI6MjEwNDA0MTA1MH0.YoBlJHJyFZuU8cpZXs7kwqMyALBT2VXsoHfS2Yg8gr0';
 
 const CLAVE_SESION = 'rutina:sesion-nube';
+const CLAVE_CODIGO = 'rutina:codigo';
 const LOTE = 200;
+const ESPERA_SYNC = 4000;
+
+// Sin caracteres que se confundan al copiarlos a mano: ni O ni 0, ni I ni 1.
+const ALFABETO = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 let sesion = null;
 try { sesion = JSON.parse(localStorage.getItem(CLAVE_SESION) || 'null'); } catch { sesion = null; }
@@ -29,13 +38,34 @@ function guardarSesion(s) {
   else localStorage.removeItem(CLAVE_SESION);
 }
 
+let codigo = localStorage.getItem(CLAVE_CODIGO) || null;
+
 export function estado() {
   return {
-    activo: !!sesion,
+    activo: !!sesion && !!codigo,
+    codigo,
     userId: sesion?.user?.id ?? null,
-    anonimo: sesion?.user?.is_anonymous ?? null,
-    mail: sesion?.user?.email ?? null,
+    pendiente: !!pendienteDeSubir,
+    ultimoError,
   };
+}
+
+/** Código sugerido: corto, legible y sin caracteres ambiguos. */
+export function codigoSugerido() {
+  const azar = (n) => Array.from(crypto.getRandomValues(new Uint8Array(n)))
+    .map(b => ALFABETO[b % ALFABETO.length]).join('');
+  return `${azar(4)}-${azar(4)}`;
+}
+
+export function normalizar(c) {
+  return String(c || '').trim().toUpperCase().replace(/s+/g, '');
+}
+
+// El código es la credencial. El mail es sintético y nunca recibe nada: existe
+// solo porque el proveedor de auth necesita un identificador con esa forma.
+function credenciales(c) {
+  const limpio = normalizar(c).replace(/[^A-Z0-9]/g, '').toLowerCase();
+  return { email: `${limpio}@rutina.app`, password: `${limpio}::rutina-v1` };
 }
 
 // ---------- transporte ----------
@@ -74,26 +104,49 @@ async function refrescar() {
 
 // ---------- cuenta ----------
 
-/** Crea la cuenta sin pantalla de registro: usuario anónimo al vuelo. */
-export async function activar() {
-  if (sesion) return estado();
-  const s = await pedir('/auth/v1/signup', { method: 'POST', body: JSON.stringify({ data: {} }) }, false);
-  guardarSesion(s);
-  return estado();
-}
-
 /**
- * Convierte la cuenta anónima en una con mail, para poder recuperar los datos
- * en otro teléfono. Manda un link, no pide contraseña.
+ * Entrar con un código. Si ya existe, entra; si no, lo crea. Es la misma acción
+ * en los dos casos, que es lo que lo hace sentir un código y no un registro.
+ * @returns {{nuevo: boolean}} si el código se acaba de crear
  */
-export async function vincularMail(email) {
-  if (!sesion) throw new Error('Activá el respaldo primero.');
-  await pedir('/auth/v1/user', { method: 'PUT', body: JSON.stringify({ email }) });
-  return true;
+export async function entrar(c) {
+  const limpio = normalizar(c);
+  if (limpio.replace(/[^A-Z0-9]/g, '').length < 6) {
+    throw new Error('El código tiene que tener al menos 6 letras o números.');
+  }
+  const cred = credenciales(limpio);
+
+  try {
+    const s = await pedir('/auth/v1/token?grant_type=password', {
+      method: 'POST', body: JSON.stringify(cred),
+    }, false);
+    guardarSesion(s);
+    guardarCodigo(limpio);
+    return { nuevo: false };
+  } catch (e) {
+    // Credenciales inválidas puede ser un código libre o uno ajeno; se sabe al
+    // intentar crearlo.
+    try {
+      const s = await pedir('/auth/v1/signup', { method: 'POST', body: JSON.stringify(cred) }, false);
+      if (!s.access_token) throw new Error('sin sesión');
+      guardarSesion(s);
+      guardarCodigo(limpio);
+      return { nuevo: true };
+    } catch {
+      throw new Error('Ese código ya lo está usando otra cuenta, o lo escribiste mal.');
+    }
+  }
 }
 
-export function desactivar() {
+export function salir() {
   guardarSesion(null);
+  guardarCodigo(null);
+}
+
+function guardarCodigo(c) {
+  codigo = c;
+  if (c) localStorage.setItem(CLAVE_CODIGO, c);
+  else localStorage.removeItem(CLAVE_CODIGO);
 }
 
 // ---------- traducción entre el modelo local y las tablas ----------
@@ -300,4 +353,77 @@ export async function resumenRemoto() {
     pedir('/rest/v1/sesiones?select=inicio&order=inicio.desc&limit=1'),
   ]);
   return { sesiones, series, ultima: ultima?.[0]?.inicio ?? null };
+}
+
+// ---------- sincronización automática ----------
+//
+// El teléfono deja de tener botones de respaldo: cada cambio se sube solo,
+// agrupado, y al abrir con un código en un teléfono sin datos se baja todo.
+
+let pendienteDeSubir = false;
+let ultimoError = null;
+let temporizador = null;
+let subiendo = false;
+let alCambiar = null;
+
+/** Avisa a la interfaz cuando cambia el estado de la sincronización. */
+export function alCambiarEstado(fn) { alCambiar = fn; }
+function avisar() { if (alCambiar) alCambiar(estado()); }
+
+/**
+ * Marca que hay algo para subir y programa la subida. Se llama en cada cambio;
+ * agrupar evita subir veinte veces mientras tocás el stepper.
+ */
+export function marcarSucio(db) {
+  if (!sesion || !codigo) return;
+  pendienteDeSubir = true;
+  avisar();
+  clearTimeout(temporizador);
+  temporizador = setTimeout(() => subirAhora(db), ESPERA_SYNC);
+}
+
+/** Sube ya, sin esperar. Para cerrar la app o terminar una sesión. */
+export async function subirAhora(db) {
+  if (!sesion || !codigo || subiendo || !pendienteDeSubir) return;
+  subiendo = true;
+  clearTimeout(temporizador);
+  try {
+    await respaldar(db);
+    pendienteDeSubir = false;
+    ultimoError = null;
+    db.meta.ultimoRespaldo = Date.now();
+  } catch (e) {
+    // Queda pendiente a propósito: si no hay señal, se reintenta al próximo
+    // cambio o al volver a abrir. Nada se pierde: lo local ya está guardado.
+    ultimoError = e.message;
+  } finally {
+    subiendo = false;
+    avisar();
+  }
+}
+
+/**
+ * Qué hacer al abrir la app con un código configurado.
+ * - Si el teléfono está vacío y la nube tiene datos, se baja (teléfono nuevo).
+ * - Si los dos tienen datos, no se toca nada y se avisa, porque pisar una de
+ *   las dos partes en silencio es exactamente lo que no hay que hacer.
+ */
+export async function alAbrir(db) {
+  if (!codigo) return { accion: 'sin-codigo' };
+  if (!sesion) {
+    try { await entrar(codigo); }
+    catch (e) { ultimoError = e.message; return { accion: 'error', error: e.message }; }
+  }
+  let remoto;
+  try { remoto = await resumenRemoto(); }
+  catch (e) { ultimoError = e.message; return { accion: 'sin-red' }; }
+
+  const localVacio = db.sesiones.length === 0 && !db.sesionAbierta;
+  if (remoto?.sesiones > 0 && localVacio) return { accion: 'bajar', remoto };
+  if (remoto?.sesiones > 0 && !localVacio && !db.meta.ultimoRespaldo) {
+    return { accion: 'divergen', remoto, local: db.sesiones.length };
+  }
+  pendienteDeSubir = true;
+  await subirAhora(db);
+  return { accion: 'subido' };
 }

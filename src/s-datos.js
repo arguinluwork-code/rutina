@@ -163,76 +163,72 @@ export function pantallaDatos(db) {
 // ---------------------------------------------------------------- nube
 
 /**
- * Respaldo en Supabase. La cuenta se crea sola y anónima, sin pantalla de
- * registro; vincular un mail es opcional y sirve para recuperar los datos en
- * otro teléfono.
+ * La cuenta es un código, no un login. La misma acción sirve para crear uno
+ * nuevo o entrar con el que ya tenías, que es lo que lo hace sentir un código.
+ * La sincronización es automática: acá solo se elige el código y se ve el estado.
  */
 function bloqueNube(db) {
   const est = nube.estado();
-  const caja = h('div', { class: 'stack tight' });
-
-  const estadoTxt = h('span', { class: 'tiny num' });
-  const pintarEstado = () => {
-    const t = db.meta.ultimoRespaldo;
-    estadoTxt.textContent = !est.activo
-      ? 'Desactivado. Los datos viven solo en este teléfono.'
-      : t ? `Último respaldo: ${fFechaLarga(t)} (${hace(t)})`
-          : 'Activo, todavía sin respaldar.';
-  };
-  pintarEstado();
-
-  const subir = async (btn) => {
-    btn.disabled = true;
-    try {
-      const r = await nube.respaldar(S.db);
-      mutar(d => { d.meta.ultimoRespaldo = Date.now(); });
-      toast(`Respaldado: ${r.sesiones} sesiones, ${r.series} series`);
-    } catch (e) {
-      toast('No se pudo respaldar: ' + e.message);
-    } finally { btn.disabled = false; }
-  };
 
   if (!est.activo) {
-    caja.append(
-      h('span', { class: 'kicker' }, 'Respaldo en la nube'),
+    const sugerido = nube.codigoSugerido();
+    const codigoIn = h('input', {
+      type: 'text', value: sugerido, autocapitalize: 'characters',
+      autocorrect: 'off', spellcheck: 'false', enterkeyhint: 'go',
+    });
+    const entrar = async (e) => {
+      const b = e.currentTarget; b.disabled = true;
+      try {
+        const r = await nube.entrar(codigoIn.value);
+        toast(r.nuevo ? 'Código creado, sincronizando' : 'Entraste, sincronizando');
+        mutar(() => {});
+      } catch (er) { toast(er.message); b.disabled = false; }
+    };
+    return h('div', { class: 'stack tight' },
+      h('span', { class: 'kicker' }, 'Sincronización'),
       h('span', { class: 'tiny', style: 'line-height:1.45' },
-        'Crea una cuenta anónima al vuelo: sin registro ni contraseña. ' +
-        'Después podés vincular un mail para recuperar los datos si perdés el teléfono.'),
-      h('button', {
-        class: 'btn primary',
-        onclick: async (e) => {
-          const b = e.currentTarget; b.disabled = true;
-          try { await nube.activar(); await subir(b); mutar(() => {}); }
-          catch (er) { toast('No se pudo activar: ' + er.message); b.disabled = false; }
-        },
-      }, icono('nube', 17), 'Activar respaldo'),
+        'Un código y listo, sin registro ni contraseña. Poné el mismo en otro teléfono ' +
+        'y ahí aparecen tus datos.'),
+      h('div', { class: 'field' }, codigoIn),
+      h('div', { class: 'note' }, icono('alerta', 14),
+        h('span', null, 'Anotalo. Es lo único que te devuelve los datos, y cualquiera que lo tenga puede borrarlos.')),
+      h('button', { class: 'btn primary', onclick: entrar }, icono('nube', 17), 'Usar este código'),
     );
-    return caja;
   }
 
-  const mailIn = h('input', { type: 'email', placeholder: 'tu@mail.com', enterkeyhint: 'done' });
+  const t = db.meta.ultimoRespaldo;
+  const estadoTxt = est.ultimoError
+    ? `Sin subir: ${est.ultimoError}`
+    : est.pendiente ? 'Subiendo cambios…'
+      : t ? `Al día · última subida ${hace(t)}` : 'Al día';
 
-  caja.append(
-    h('span', { class: 'kicker' }, 'Respaldo en la nube'),
-    estadoTxt,
+  return h('div', { class: 'stack tight' },
+    h('span', { class: 'kicker' }, 'Sincronización'),
+    h('div', { class: 'card' }, h('div', { class: 'card-pad', style: 'gap:8px' },
+      h('span', { class: 'kicker' }, 'Tu código'),
+      h('span', { class: 'num', style: 'font-size:26px;font-weight:700;letter-spacing:.06em' }, est.codigo),
+      h('span', { class: 'tiny num', style: est.ultimoError ? 'color:var(--warn)' : '' }, estadoTxt),
+    )),
     h('button', {
-      class: 'btn primary',
-      onclick: (e) => subir(e.currentTarget),
-    }, icono('exportar', 17), 'Respaldar ahora'),
+      class: 'btn',
+      onclick: async () => {
+        try { await navigator.clipboard.writeText(est.codigo); toast('Código copiado'); }
+        catch { toast('No se pudo copiar'); }
+      },
+    }, icono('copiar', 16), 'Copiar código'),
+    h('span', { class: 'tiny', style: 'line-height:1.45' },
+      'Se sube solo con cada cambio. No hace falta tocar nada.'),
 
     h('button', {
       class: 'btn',
       onclick: async () => {
         try {
           const r = await nube.resumenRemoto();
-          if (!r || !r.sesiones) { toast('No hay nada respaldado todavía'); return; }
+          if (!r || !r.sesiones) { toast('No hay nada guardado con este código'); return; }
           confirmar({
             titulo: '¿Traer lo de la nube?',
-            texto: `En la nube hay ${plural(r.sesiones, 'sesión', 'sesiones')} y ${r.series} series.
-` +
-                   `Acá tenés ${plural(db.sesiones.length, 'sesión', 'sesiones')}.
-
-` +
+            texto: `Con este código hay ${plural(r.sesiones, 'sesión', 'sesiones')} y ${r.series} series.\n` +
+                   `Acá tenés ${plural(db.sesiones.length, 'sesión', 'sesiones')}.\n\n` +
                    'Reemplaza todo lo de este teléfono. Antes se guarda una copia de lo actual.',
             ok: 'Traer',
             onOk: async () => {
@@ -240,41 +236,22 @@ function bloqueNube(db) {
               const traido = await nube.traer();
               if (!traido) { toast('No había nada para traer'); return; }
               reemplazarDb(traido);
-              toast('Datos traídos de la nube');
+              toast('Datos traídos');
             },
           });
         } catch (e) { toast('No se pudo consultar: ' + e.message); }
       },
-    }, icono('importar', 17), 'Traer de la nube'),
-
-    est.anonimo
-      ? h('div', { class: 'field', style: 'padding-top:6px' },
-          h('span', { class: 'tiny', style: 'line-height:1.45' },
-            'La cuenta es anónima: si perdés el teléfono, se pierde el acceso. ' +
-            'Vinculá un mail y te llega un link, sin contraseña.'),
-          mailIn,
-          h('button', {
-            class: 'btn',
-            onclick: async () => {
-              const mail = mailIn.value.trim();
-              if (!mail.includes('@')) { toast('Poné un mail válido'); return; }
-              try { await nube.vincularMail(mail); toast('Te mandamos un link a ' + mail); }
-              catch (e) { toast('No se pudo: ' + e.message); }
-            },
-          }, 'Vincular mail'),
-        )
-      : h('span', { class: 'tiny num' }, 'Cuenta vinculada a ' + est.mail),
+    }, icono('importar', 16), 'Traer de la nube'),
 
     h('button', {
       class: 'btn ghost', style: 'height:44px;color:var(--fg-2);font-size:13px',
       onclick: () => confirmar({
-        titulo: '¿Desactivar el respaldo?',
-        texto: 'Se cierra la sesión en este teléfono. Lo que ya está en la nube no se borra, ' +
-               'pero sin mail vinculado no vas a poder volver a entrar.',
-        ok: 'Desactivar', peligro: true,
-        onOk: () => { nube.desactivar(); mutar(() => {}); toast('Respaldo desactivado'); },
+        titulo: '¿Usar otro código?',
+        texto: 'Los datos de este teléfono quedan como están; lo que ya subiste con el código ' +
+               'actual sigue guardado y podés volver escribiéndolo de nuevo.',
+        ok: 'Cambiar código',
+        onOk: () => { nube.salir(); mutar(() => {}); },
       }),
-    }, 'Desactivar'),
+    }, 'Usar otro código'),
   );
-  return caja;
 }

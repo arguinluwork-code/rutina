@@ -14,6 +14,7 @@ import {
 import { pantallaHistorial, pantallaSesion, pantallaFicha } from './s-historial.js';
 import { pantallaProgreso } from './s-progreso.js';
 import { pantallaDatos } from './s-datos.js';
+import * as nube from './nube.js';
 
 export const S = {
   db: null,
@@ -46,6 +47,7 @@ const PANTALLAS = {
 export function mutar(fn) {
   const r = fn(S.db);
   guardar(S.db);
+  nube.marcarSucio(S.db);
   render();
   return r;
 }
@@ -53,6 +55,7 @@ export function mutar(fn) {
 export function reemplazarDb(nuevo) {
   S.db = nuevo;
   guardar(S.db);
+  nube.marcarSucio(S.db);
   S.pila = [];
   S.borrador = null;
   S.ruta = { n: RAIZ[S.tab] };
@@ -261,11 +264,46 @@ async function arrancar() {
     S.avisoModelo = false;
     toast('Tus días pasaron a ser plantillas y se conservó todo el historial');
   }
+  nube.alCambiarEstado(() => render());
+  resolverNube();
 }
 
-window.addEventListener('pagehide', () => { if (S.db) guardar(S.db); });
+/**
+ * Al abrir con un código: si el teléfono está vacío y la nube tiene datos, se
+ * ofrece bajarlos. Si los dos tienen datos y nunca sincronizaron, se pregunta
+ * en vez de pisar cualquiera de las dos partes.
+ */
+async function resolverNube() {
+  let r;
+  try { r = await nube.alAbrir(S.db); } catch { return; }
+
+  if (r.accion === 'bajar') {
+    confirmar({
+      titulo: 'Hay datos guardados con ese código',
+      texto: `En la nube hay ${r.remoto.sesiones} sesiones y ${r.remoto.series} series.\n` +
+             'Este teléfono está vacío. ¿Los traigo?',
+      ok: 'Traer',
+      onOk: async () => {
+        const traido = await nube.traer();
+        if (traido) { reemplazarDb(traido); toast('Datos traídos'); }
+      },
+    });
+  } else if (r.accion === 'divergen') {
+    confirmar({
+      titulo: 'Los datos no coinciden',
+      texto: `Acá tenés ${r.local} sesiones y en la nube hay ${r.remoto.sesiones}, y este teléfono ` +
+             'nunca sincronizó con ese código.\n\n' +
+             'No toco nada hasta que decidas: podés subir lo de acá o traer lo de la nube, desde Datos.',
+      ok: 'Entendido',
+      onOk: () => {},
+    });
+  }
+  render();
+}
+
+window.addEventListener('pagehide', () => { if (S.db) { guardar(S.db); nube.subirAhora(S.db); } });
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'hidden' && S.db) guardar(S.db);
+  if (document.visibilityState === 'hidden' && S.db) { guardar(S.db); nube.subirAhora(S.db); }
 });
 
 if ('serviceWorker' in navigator && location.protocol === 'https:') {

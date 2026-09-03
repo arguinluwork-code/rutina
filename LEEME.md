@@ -110,11 +110,14 @@ La app **no deja de ser local-first**: el teléfono sigue siendo la fuente de
 verdad mientras entrenás, porque en el gimnasio no hay señal. Supabase es el
 respaldo durable y la capa de análisis.
 
-- **Cuenta anónima al vuelo**, sin pantalla de registro ni contraseña. Vincular
-  un mail es opcional y sirve para recuperar los datos en otro teléfono.
-- **Respaldar** sube todo por upsert y marca como borrado lo que ya no está
-  acá. **Traer** baja todo y reconstruye, siempre preguntando antes y con una
-  copia de seguridad previa.
+- **La cuenta es un código**, no un login: una sola cosa para escribir, la misma
+  en cualquier teléfono. Abajo sigue siendo auth de verdad (el código es la
+  credencial y el mail es sintético), porque lo que protege los datos no es que
+  sean poco interesantes sino que nadie más pueda borrarlos. Por eso el código
+  sugerido es aleatorio: un teléfono es adivinable.
+- **La sincronización es automática.** Cada cambio se sube solo, agrupado, y al
+  abrir con un código en un teléfono vacío se ofrece bajar todo. Si los dos
+  lados tienen datos y nunca sincronizaron, se pregunta en vez de pisar.
 - **RLS en todas las tablas**, verificado: sin sesión no se ve una sola fila, y
   un usuario no puede leer ni escribir las de otro. Con sign-in anónimo activado
   todo usuario lleva el rol `authenticated`, así que ninguna política confía en

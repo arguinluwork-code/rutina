@@ -190,6 +190,8 @@ async function migrar(db) {
     return nuevo;
   }
 
+  // v5: catálogo y plantillas nuevos. Solo se resiembra si no hay nada
+  // registrado; con sesiones cargadas la rutina es tuya y no la toco.
   if (desde < 3) {
     for (const e of Object.values(db.ejercicios || {})) e.incremento = PASO;
   }

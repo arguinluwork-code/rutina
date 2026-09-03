@@ -17,7 +17,7 @@
 import { MUSCULOS, musculo, labelMusculo, UMBRAL_ESTIMULO } from './musculos.js';
 export { MUSCULOS, musculo, labelMusculo, UMBRAL_ESTIMULO };
 
-export const VERSION_DATOS = 4;
+export const VERSION_DATOS = 5;
 
 /** Salto de carga por tap. Editable por variante. */
 export const PASO = 2.5;
@@ -45,40 +45,45 @@ function va(id, ejercicioId, nombre, opts = {}) {
 }
 
 const MOVIMIENTOS = [
+  // --- empuje
   mov('ex_press_banca', 'Press banca', ['pecho', 'triceps', 'hombro-anterior'], [
     'Juntá y hundí los omóplatos contra el banco antes de sacar la barra. El pecho queda alto y el hombro deja de compensar.',
     'Bajá a la línea del pezón con los codos a unos 45 grados del torso, no abiertos a 90.',
     'Pies firmes y cadera apoyada. Si tenés que despegar la cola, el peso está de más.',
-    'Volviendo de un parate, quedate en RIR 2 real las primeras semanas: el manguito rotador es lo que te saca de la rutina, no el pecho.',
+    'Es el único movimiento con barra de la rutina, y a propósito: acostado y con la espalda apoyada no pide estabilidad de core.',
   ]),
   mov('ex_press_inclinado', 'Press inclinado', ['pecho', 'hombro-anterior', 'triceps'], [
     'Banco entre 30 y 45 grados. Más inclinado pasa a ser press de hombro.',
     'Ajustá el asiento para que las manijas queden a la altura de la parte alta del pecho.',
-    'Frená un segundo en el punto más profundo en vez de rebotar.',
+    'Frená un segundo en el punto más profundo en vez de rebotar: ahí es donde el pecho está estirado y donde más rinde.',
     'No bloquees el codo del todo arriba: perdés tensión.',
   ]),
+  mov('ex_pec_deck', 'Aperturas en pec deck', ['pecho'], [
+    'Mantiene tensión en la apertura máxima, que es justo donde la mancuerna la pierde.',
+    'Codos a la altura del hombro y apenas flexionados, fijos todo el recorrido.',
+    'Abrí hasta sentir el pecho estirado, sin forzar el hombro hacia atrás.',
+  ]),
   mov('ex_press_hombro', 'Press de hombro', ['hombro-anterior', 'hombro-lateral', 'triceps'], [
-    'Asiento regulado para que las manijas queden a la altura del hombro, no arriba.',
+    'Sentado con respaldo: la demanda de estabilidad es baja y el rango es libre.',
     'Costillas abajo, sin arquear la lumbar para sacar la última repetición.',
     'Bajá hasta que el codo quede apenas por debajo del hombro. Más abajo no suma y estresa la articulación.',
   ]),
   mov('ex_elevacion_lateral', 'Elevación lateral', ['hombro-lateral'], [
+    'El de mayor retorno de la rutina: el lateral no recibe casi nada indirecto de los press.',
     'Codo levemente flexionado y fijo. El movimiento sale del hombro, no del codo.',
     'Subí hasta la línea del hombro. Más arriba entra el trapecio y el deltoides deja de trabajar.',
-    'Si en las últimas repeticiones tirás el torso o encogés el hombro, no estás fallando de deltoides: bajá el peso.',
-    'Es el ejercicio de mayor retorno de tu rutina: el lateral no recibe casi nada indirecto de los press.',
+    'Con polea hay tensión desde abajo, con mancuerna recién aparece cerca de la horizontal. Las dos sirven; la polea carga la parte estirada.',
   ]),
   mov('ex_pushdown', 'Extensión de tríceps en polea alta', ['triceps'], [
     'Codos pegados al costado y quietos: solo se mueve el antebrazo.',
-    'Torso apenas inclinado hacia adelante, no vertical, para que la polea quede alineada.',
-    'Estirá del todo abajo y aguantá medio segundo.',
-    'Si la barra recta te molesta la muñeca o el codo, pasate a la barra en V.',
+    'Torso apenas inclinado hacia adelante para que la polea quede alineada.',
+    'Es trabajo en posición corta: va después del de sobre la cabeza y con más repeticiones.',
   ]),
   mov('ex_triceps_overhead', 'Extensión de tríceps sobre la cabeza', ['triceps'], [
-    'Con soga el agarre neutro evita la torsión de muñeca que genera la barra recta con los brazos atrás de la cabeza.',
-    'Alejate de la polea hasta sentir el estiramiento del tríceps.',
+    'Con el brazo arriba la porción larga queda estirada, y es la que más crece así (Maeo 2022).',
+    'Alejate de la polea hasta sentir el estiramiento antes de empezar.',
     'Codos apuntando al frente y cerrados, no abiertos a los costados.',
-    'Es el que más estira la porción larga: prioridad al rango, no al peso.',
+    'Prioridad al rango, no al peso.',
   ]),
   mov('ex_triceps_unilateral', 'Extensión de tríceps unilateral', ['triceps'], [
     'Agarre supino, palma hacia arriba, para pegarle a la porción lateral.',
@@ -87,17 +92,18 @@ const MOVIMIENTOS = [
   ]),
   mov('ex_fondos', 'Fondos', ['triceps', 'pecho', 'hombro-anterior'], [
     'Torso vertical para cargar el tríceps. Inclinado adelante pasa a ser pecho.',
-    'Bajá hasta que el codo llegue a 90 grados y no más, sobre todo volviendo de un parate.',
+    'Bajá hasta que el codo llegue a 90 grados y no más.',
     'Hombros lejos de las orejas todo el recorrido.',
   ]),
 
+  // --- tirón
   mov('ex_jalon', 'Jalón al pecho', ['dorsal', 'biceps', 'espalda-alta'], [
     'Empezá bajando el hombro antes de doblar el codo. Si arrancás tirando con el brazo, trabaja el bíceps.',
     'Llevá la barra a la clavícula con el pecho arriba, sin tirarte para atrás.',
     'Soltá controlado hasta sentir el estiramiento del dorsal, no dejes que te levante del asiento.',
   ]),
-  mov('ex_remo_maquina', 'Remo con apoyo pectoral', ['espalda-alta', 'dorsal', 'biceps', 'hombro-posterior'], [
-    'Sirve igual la T-bar si tiene apoyo pectoral. La T-bar tipo landmine no: ahí el torso lo sostiene la espalda baja.',
+  mov('ex_remo_apoyo', 'Remo con apoyo pectoral', ['espalda-alta', 'dorsal', 'biceps', 'hombro-posterior'], [
+    'Con apoyo pectoral siempre. La T-bar tipo landmine, parado e inclinado, no: ahí el torso lo sostiene la espalda baja.',
     'Pecho pegado al apoyo todo el recorrido: si se despega, estás usando la espalda baja.',
     'Codos rozando el torso, tirá hacia la cadera y no hacia arriba.',
     'Un segundo de pausa con los omóplatos juntos antes de soltar.',
@@ -105,28 +111,27 @@ const MOVIMIENTOS = [
   mov('ex_jalon_unilateral', 'Jalón unilateral', ['dorsal', 'biceps'], [
     'Sentado o arrodillado frente a la polea, con una sola manija.',
     'Dejá que el hombro suba y el omóplato se abra arriba: ese estiramiento extra es la razón de hacerlo unilateral.',
-    'Tirá hacia el costado de las costillas, no hacia el pecho.',
     'Igualá repeticiones entre lados, no peso. Arrancá siempre por el lado más débil.',
   ]),
-  mov('ex_pullover', 'Pull-over en polea alta', ['dorsal'], [
+  mov('ex_pullover', 'Pull-over en polea', ['dorsal'], [
+    'El único que carga el dorsal en estiramiento sin que entre el bíceps.',
     'Codos semi rígidos todo el movimiento. Si se doblan, se convierte en un jalón.',
     'Cadera atrás y torso inclinado: buscá que el dorsal quede estirado arriba.',
-    'Bajá hasta los muslos y frená ahí.',
   ]),
-  mov('ex_curl', 'Curl de bíceps', ['biceps'], [
-    'Codo fijo al costado del torso: si viaja hacia adelante, entra el hombro.',
-    'Supiná, girá la palma hacia arriba, mientras subís y no antes.',
-    'Bajá en 2 segundos. La fase negativa es la mitad del estímulo.',
+  mov('ex_curl_inclinado', 'Curl inclinado', ['biceps'], [
+    'Banco inclinado con los brazos colgando atrás: es la posición donde el bíceps queda más estirado.',
+    'El codo se queda atrás, no viaja hacia adelante.',
+    'Bajá en 2 segundos y estirá del todo abajo. El rango completo es el motivo de este ejercicio.',
+  ]),
+  mov('ex_curl_predicador', 'Curl predicador', ['biceps'], [
+    'Trabajo en posición corta, complementario del inclinado. Por eso van los dos.',
+    'Axila apoyada firme contra el respaldo, hombro por delante del codo.',
+    'No estires del todo el codo abajo si es la primera vez que lo hacés: entrá al rango completo de a poco.',
   ]),
   mov('ex_curl_martillo', 'Curl martillo', ['biceps', 'antebrazo'], [
     'Palmas enfrentadas todo el recorrido, sin rotar.',
     'Trabaja el braquial y el braquiorradial: es lo que te engrosa el brazo visto de costado.',
     'Nada de balanceo del torso, aunque sea la última serie.',
-  ]),
-  mov('ex_curl_predicador', 'Curl predicador', ['biceps'], [
-    'Axila apoyada firme contra el respaldo, hombro por delante del codo.',
-    'No estires del todo el codo abajo si es la primera vez que lo hacés: entrá al rango completo de a poco.',
-    'Es la posición donde el bíceps queda más estirado, por eso pega tanto.',
   ]),
   mov('ex_face_pull', 'Face pull', ['hombro-posterior', 'espalda-alta'], [
     'Polea a la altura de la cara. Tirá hacia la frente separando las manos.',
@@ -139,7 +144,9 @@ const MOVIMIENTOS = [
     'Sin encoger el hombro. Si lo sentís en el trapecio, bajá el peso.',
   ]),
 
+  // --- piernas y core
   mov('ex_prensa', 'Prensa 45', ['cuadriceps', 'gluteo', 'isquiotibiales'], [
+    'Reemplaza a la sentadilla: mismo estímulo para el cuádriceps sin la demanda técnica.',
     'Pies al ancho de hombros, a media altura de la plataforma.',
     'Bajá hasta donde la cadera se mantenga apoyada. Si la cola se despega, se te redondea la lumbar.',
     'No bloquees las rodillas arriba.',
@@ -150,19 +157,14 @@ const MOVIMIENTOS = [
     'Rango completo antes que carga: la profundidad es lo que hace crecer el cuádriceps.',
   ]),
   mov('ex_curl_femoral', 'Curl femoral', ['isquiotibiales'], [
+    'Sentado antes que acostado: con la cadera flexionada el isquio arranca estirado y crece más (Maeo 2021).',
     'Cadera pegada al apoyo, sin levantarla para completar la repetición.',
-    'El eje de la máquina tiene que coincidir con la rodilla.',
     'Bajá lento: el isquiotibial se lesiona en la fase excéntrica, entrenarlo ahí lo protege.',
   ]),
   mov('ex_extension_cuadriceps', 'Extensión de cuádriceps', ['cuadriceps'], [
     'Estirá del todo arriba y aguantá un segundo apretando.',
     'Espalda apoyada, sin tirar el torso hacia atrás para ayudarte.',
     'Si molesta la rodilla, acortá el rango de abajo, no el de arriba.',
-  ]),
-  mov('ex_rumano', 'Peso muerto rumano', ['isquiotibiales', 'gluteo', 'lumbar'], [
-    'La cadera va para atrás y la barra pegada a la pierna.',
-    'Bajá hasta sentir el femoral, no más. No es un peso muerto convencional.',
-    'Espalda neutra todo el recorrido.',
   ]),
   mov('ex_gemelos', 'Gemelos en máquina', ['gemelos'], [
     'Bajá el talón todo lo que dé y aguantá dos segundos abajo.',
@@ -171,31 +173,38 @@ const MOVIMIENTOS = [
   ]),
   mov('ex_abdomen', 'Crunch en polea', ['abdomen'], [
     'Arrodillado frente a la polea, el movimiento es acercar las costillas a la pelvis.',
-    'No tires con los brazos ni con la cadera: si el codo se aleja de la cabeza, estás haciendo otra cosa.',
+    'No tires con los brazos ni con la cadera.',
     'Exhalá al cerrar y aguantá un segundo abajo.',
   ]),
 ];
-
 const VARIANTES = [
   va('v_banca_barra', 'ex_press_banca', 'Barra'),
   va('v_banca_mancuernas', 'ex_press_banca', 'Mancuernas', { factor: 0.85, nota: 'Peso por mancuerna' }),
+  va('v_banca_maquina', 'ex_press_banca', 'Máquina', { factor: 1.1 }),
 
   va('v_inclinado_maquina', 'ex_press_inclinado', 'Máquina'),
   va('v_inclinado_mancuernas', 'ex_press_inclinado', 'Mancuernas', { factor: 0.55, nota: 'Peso por mancuerna' }),
+  va('v_inclinado_smith', 'ex_press_inclinado', 'Smith', { factor: 0.9 }),
+
+  va('v_pecdeck_maquina', 'ex_pec_deck', 'Máquina'),
+  va('v_pecdeck_polea', 'ex_pec_deck', 'Poleas cruzadas', { factor: 0.7 }),
 
   va('v_presshombro_maquina', 'ex_press_hombro', 'Máquina'),
-  va('v_presshombro_mancuernas', 'ex_press_hombro', 'Mancuernas sentado', { factor: 0.5, nota: 'Peso por mancuerna' }),
+  va('v_presshombro_mancuernas', 'ex_press_hombro', 'Mancuernas', { factor: 0.5, nota: 'Peso por mancuerna' }),
 
   va('v_lateral_polea', 'ex_elevacion_lateral', 'Polea unilateral', {
-    nota: 'Parate del lado opuesto a la polea: el cable cruza por delante y mantiene tensión abajo, que es donde la mancuerna la pierde.' }),
+    nota: 'Del lado opuesto a la polea: el cable cruza por delante y mantiene tensión abajo, donde el deltoides está estirado.' }),
+  va('v_lateral_mancuernas', 'ex_elevacion_lateral', 'Mancuernas', { factor: 1.15, nota: 'Peso por mancuerna. Abajo no hay tensión: el estímulo se concentra arriba.' }),
   va('v_lateral_maquina', 'ex_elevacion_lateral', 'Máquina', { factor: 1.6 }),
-  va('v_lateral_mancuernas', 'ex_elevacion_lateral', 'Mancuernas', { factor: 1.15, nota: 'Peso por mancuerna' }),
 
   va('v_pushdown_barra', 'ex_pushdown', 'Barra recta'),
   va('v_pushdown_v', 'ex_pushdown', 'Barra en V'),
   va('v_pushdown_soga', 'ex_pushdown', 'Soga', { factor: 0.85 }),
 
-  va('v_overhead_soga', 'ex_triceps_overhead', 'Soga'),
+  va('v_overhead_soga', 'ex_triceps_overhead', 'Polea con soga'),
+  va('v_overhead_unilateral', 'ex_triceps_overhead', 'Polea unilateral', { factor: 0.55 }),
+  va('v_overhead_mancuerna', 'ex_triceps_overhead', 'Mancuerna a dos manos', { factor: 0.9 }),
+
   va('v_triuni_polea', 'ex_triceps_unilateral', 'Polea, agarre supino'),
 
   va('v_fondos_asistida', 'ex_fondos', 'Máquina asistida', { tipo: 'asistido',
@@ -204,17 +213,21 @@ const VARIANTES = [
 
   va('v_jalon_neutro', 'ex_jalon', 'Agarre neutro'),
   va('v_jalon_prono', 'ex_jalon', 'Agarre prono ancho', { factor: 0.95 }),
-  va('v_remo_maquina', 'ex_remo_maquina', 'Máquina'),
-  va('v_remo_tbar', 'ex_remo_maquina', 'T-bar con apoyo'),
+
+  va('v_remo_t', 'ex_remo_apoyo', 'T inclinado con apoyo'),
+  va('v_remo_maquina', 'ex_remo_apoyo', 'Máquina sentado', { factor: 1 }),
+  va('v_remo_polea', 'ex_remo_apoyo', 'Polea baja', { factor: 0.9 }),
+
   va('v_jalonuni_polea', 'ex_jalon_unilateral', 'Polea alta'),
   va('v_pullover_polea', 'ex_pullover', 'Polea alta'),
+  va('v_pullover_maquina', 'ex_pullover', 'Máquina', { factor: 1.2 }),
 
-  va('v_curl_mancuernas', 'ex_curl', 'Mancuernas alterno', { nota: 'Peso por mancuerna' }),
-  va('v_curl_polea', 'ex_curl', 'Polea baja con barra', { factor: 2.1 }),
-  va('v_curl_barraz', 'ex_curl', 'Barra Z', { factor: 2.2 }),
-  va('v_martillo_mancuernas', 'ex_curl_martillo', 'Mancuernas'),
+  va('v_curlinc_mancuernas', 'ex_curl_inclinado', 'Mancuernas en banco inclinado', { nota: 'Peso por mancuerna' }),
+  va('v_curlinc_polea', 'ex_curl_inclinado', 'Polea baja por detrás', { factor: 1.9 }),
   va('v_predicador_maquina', 'ex_curl_predicador', 'Máquina'),
-  va('v_predicador_barraz', 'ex_curl_predicador', 'Barra Z'),
+  va('v_predicador_barraz', 'ex_curl_predicador', 'Barra Z', { factor: 1 }),
+  va('v_martillo_mancuernas', 'ex_curl_martillo', 'Mancuernas'),
+  va('v_martillo_soga', 'ex_curl_martillo', 'Polea con soga', { factor: 2 }),
 
   va('v_facepull_polea', 'ex_face_pull', 'Polea con soga'),
   va('v_posterior_maquina', 'ex_posterior', 'Máquina'),
@@ -223,21 +236,30 @@ const VARIANTES = [
   va('v_prensa_45', 'ex_prensa', 'Prensa 45'),
   va('v_hack_maquina', 'ex_hack', 'Hack'),
   va('v_hack_unilateral', 'ex_hack', 'Prensa unilateral', { factor: 0.6 }),
-  va('v_femoral_acostado', 'ex_curl_femoral', 'Acostado'),
-  va('v_femoral_sentado', 'ex_curl_femoral', 'Sentado', { factor: 1.1 }),
+  va('v_femoral_sentado', 'ex_curl_femoral', 'Sentado'),
+  va('v_femoral_acostado', 'ex_curl_femoral', 'Acostado', { factor: 0.9 }),
   va('v_cuadriceps_maquina', 'ex_extension_cuadriceps', 'Máquina'),
-  va('v_rumano_barra', 'ex_rumano', 'Barra'),
   va('v_gemelos_maquina', 'ex_gemelos', 'Máquina de pie'),
+  va('v_gemelos_sentado', 'ex_gemelos', 'Sentado', { factor: 0.6 }),
   va('v_abdomen_polea', 'ex_abdomen', 'Polea alta arrodillado'),
 ];
-
 function it(ejercicioId, varianteId, series, repsMin, repsMax, rirMin, rirMax, descanso) {
   return { ejercicioId, varianteId, series, repsMin, repsMax, rirMin, rirMax, descanso };
 }
 
 /**
- * Las cuatro plantillas están calculadas para caer dentro de los objetivos
- * semanales haciendo una vez cada una, con 22 series por sesión.
+ * Seis bloques intercambiables, sin día de la semana.
+ *
+ * Regla de armado: los músculos PRIORITARIOS (lateral, bíceps, tríceps,
+ * posterior) aparecen en TODOS los bloques, y los secundarios se concentran en
+ * el suyo. Sin eso, cualquier semana que saltee un bloque hunde una prioridad:
+ * concentrar todo el lateral en el bloque de Hombros lo dejaba en 5 de 14 en
+ * cuanto entrenabas piernas en su lugar.
+ *
+ * Los descansos siguen la evidencia (Schoenfeld 2016: los largos rinden más):
+ * 150 s en el press pesado, 120 en compuestos, 90 en aislados. Con eso un
+ * bloque de 22 series cae en unos 50 minutos, así que no hay motivo para
+ * recortarlos.
  */
 function plantillasIniciales(ts) {
   const p = (id, nombre, foco, items) => ({
@@ -245,40 +267,55 @@ function plantillasIniciales(ts) {
     versiones: [{ n: 1, ts, nota: 'Plantilla inicial', items }],
   });
   return [
-    p('pl_empuje', 'Empuje', 'Pecho, tríceps y hombro', [
-      it('ex_press_banca', 'v_banca_barra', 4, 6, 10, 2, 2, 120),
-      it('ex_press_inclinado', 'v_inclinado_maquina', 4, 10, 12, 1, 2, 90),
-      it('ex_elevacion_lateral', 'v_lateral_polea', 6, 10, 15, 1, 1, 60),
-      it('ex_pushdown', 'v_pushdown_barra', 4, 10, 12, 1, 1, 60),
-      it('ex_face_pull', 'v_facepull_polea', 4, 15, 20, 1, 1, 45),
+    p('pl_empuje', 'Empuje', 'Pecho, hombro y tríceps', [
+      it('ex_press_banca', 'v_banca_barra', 4, 6, 10, 2, 2, 150),
+      it('ex_press_inclinado', 'v_inclinado_maquina', 4, 10, 12, 1, 2, 120),
+      it('ex_elevacion_lateral', 'v_lateral_polea', 5, 10, 15, 1, 1, 90),
+      it('ex_triceps_overhead', 'v_overhead_soga', 5, 10, 15, 0, 1, 90),
+      it('ex_pec_deck', 'v_pecdeck_maquina', 4, 12, 15, 0, 1, 90),
     ]),
     p('pl_tiron', 'Tirón', 'Espalda y bíceps', [
       it('ex_jalon', 'v_jalon_neutro', 4, 8, 12, 2, 2, 120),
-      it('ex_remo_maquina', 'v_remo_maquina', 4, 8, 12, 2, 2, 120),
-      it('ex_jalon_unilateral', 'v_jalonuni_polea', 4, 10, 12, 1, 2, 90),
-      it('ex_curl', 'v_curl_polea', 4, 10, 12, 1, 1, 60),
-      it('ex_curl_martillo', 'v_martillo_mancuernas', 3, 12, 15, 0, 1, 45),
-      it('ex_elevacion_lateral', 'v_lateral_mancuernas', 3, 12, 20, 0, 1, 45),
+      it('ex_remo_apoyo', 'v_remo_t', 4, 8, 12, 2, 2, 120),
+      it('ex_curl_inclinado', 'v_curlinc_mancuernas', 5, 10, 12, 1, 1, 90),
+      it('ex_pullover', 'v_pullover_polea', 3, 12, 15, 0, 1, 90),
+      it('ex_elevacion_lateral', 'v_lateral_mancuernas', 3, 12, 20, 0, 1, 90),
+      it('ex_face_pull', 'v_facepull_polea', 3, 15, 20, 0, 1, 90),
     ]),
-    p('pl_brazos', 'Brazos y hombros', 'La prioridad de la rutina', [
-      it('ex_elevacion_lateral', 'v_lateral_maquina', 6, 12, 20, 1, 1, 60),
-      it('ex_press_hombro', 'v_presshombro_maquina', 3, 10, 12, 2, 2, 90),
-      it('ex_curl_predicador', 'v_predicador_maquina', 4, 10, 12, 1, 1, 75),
-      it('ex_triceps_overhead', 'v_overhead_soga', 4, 12, 15, 0, 1, 45),
-      it('ex_posterior', 'v_posterior_maquina', 3, 15, 20, 1, 1, 45),
-      it('ex_triceps_unilateral', 'v_triuni_polea', 2, 12, 15, 0, 1, 45),
+    p('pl_brazos', 'Brazos', 'La prioridad de la rutina', [
+      it('ex_curl_inclinado', 'v_curlinc_mancuernas', 4, 10, 12, 1, 1, 90),
+      it('ex_triceps_overhead', 'v_overhead_soga', 4, 10, 12, 1, 1, 90),
+      it('ex_curl_predicador', 'v_predicador_maquina', 4, 12, 15, 0, 1, 90),
+      it('ex_pushdown', 'v_pushdown_barra', 4, 12, 15, 0, 1, 90),
+      it('ex_elevacion_lateral', 'v_lateral_polea', 3, 12, 15, 1, 1, 90),
+      it('ex_curl_martillo', 'v_martillo_mancuernas', 3, 12, 15, 0, 1, 90),
     ]),
-    p('pl_piernas', 'Piernas y core', 'Mantenimiento', [
-      it('ex_prensa', 'v_prensa_45', 4, 10, 15, 2, 2, 120),
-      it('ex_hack', 'v_hack_maquina', 4, 10, 12, 2, 2, 90),
-      it('ex_curl_femoral', 'v_femoral_acostado', 4, 10, 15, 1, 1, 75),
-      it('ex_gemelos', 'v_gemelos_maquina', 4, 12, 20, 0, 1, 45),
-      it('ex_abdomen', 'v_abdomen_polea', 3, 12, 20, 1, 1, 45),
-      it('ex_curl', 'v_curl_mancuernas', 3, 10, 12, 1, 1, 60),
+    p('pl_hombros', 'Hombros', 'Lateral y posterior', [
+      it('ex_elevacion_lateral', 'v_lateral_maquina', 6, 12, 20, 1, 1, 90),
+      it('ex_press_hombro', 'v_presshombro_mancuernas', 4, 10, 12, 2, 2, 120),
+      it('ex_posterior', 'v_posterior_maquina', 4, 15, 20, 0, 1, 90),
+      it('ex_elevacion_lateral', 'v_lateral_mancuernas', 3, 12, 15, 0, 1, 90),
+      it('ex_curl_martillo', 'v_martillo_mancuernas', 3, 12, 15, 0, 1, 90),
+      it('ex_triceps_unilateral', 'v_triuni_polea', 2, 12, 15, 0, 1, 90),
+    ]),
+    p('pl_piernas', 'Piernas y core', 'Mantenimiento, con algo de brazo', [
+      it('ex_prensa', 'v_prensa_45', 4, 10, 15, 2, 2, 150),
+      it('ex_hack', 'v_hack_maquina', 4, 10, 12, 2, 2, 120),
+      it('ex_curl_femoral', 'v_femoral_sentado', 4, 10, 15, 1, 1, 90),
+      it('ex_gemelos', 'v_gemelos_maquina', 4, 12, 20, 0, 1, 90),
+      it('ex_elevacion_lateral', 'v_lateral_polea', 3, 12, 15, 1, 1, 90),
+      it('ex_abdomen', 'v_abdomen_polea', 3, 12, 20, 1, 1, 90),
+    ]),
+    p('pl_torso', 'Torso completo', 'Para las semanas de 3 días', [
+      it('ex_press_inclinado', 'v_inclinado_maquina', 4, 8, 12, 2, 2, 120),
+      it('ex_jalon', 'v_jalon_neutro', 4, 8, 12, 2, 2, 120),
+      it('ex_elevacion_lateral', 'v_lateral_polea', 5, 12, 15, 1, 1, 90),
+      it('ex_remo_apoyo', 'v_remo_t', 4, 10, 12, 2, 2, 120),
+      it('ex_triceps_overhead', 'v_overhead_soga', 4, 12, 15, 0, 1, 90),
+      it('ex_curl_inclinado', 'v_curlinc_mancuernas', 3, 12, 15, 0, 1, 90),
     ]),
   ];
 }
-
 export function semillaInicial() {
   const ts = Date.now();
   const ejercicios = {};

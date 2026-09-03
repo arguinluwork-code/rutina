@@ -4,8 +4,8 @@ import {
 import { S, ir, mutar } from './app.js';
 import { iniciarSesion, iniciarSesionLibre, terminarSesion, descartarSesion, resumen } from './session.js';
 import {
-  sesionesTerminadas, estadoSemanal, cobertura, avisosRecuperacion,
-  seriesDePlantilla, itemsDe, semanasEntrenadas,
+  sesionesTerminadas, estadoSemanal, avisosRecuperacion, sugerencias,
+  contextoSemana, seriesDePlantilla, semanasEntrenadas,
 } from './data.js';
 
 /** Sesiones cargadas después del último respaldo. */
@@ -102,48 +102,39 @@ export function pantallaInicio(db) {
 }
 
 function bloqueElegir(db) {
+  const sug = sugerencias(db);
+  const ctx = contextoSemana(db);
   if (S.plSel == null || !db.plantillas.some(p => p.id === S.plSel)) {
-    // Arranca elegida la que más déficit cubre. Es un dato, no un consejo.
-    S.plSel = [...db.plantillas]
-      .map(p => ({ id: p.id, r: cobertura(db, p.id).cubre }))
-      .sort((a, b) => b.r - a.r)[0]?.id ?? db.plantillas[0]?.id;
+    S.plSel = (sug.find(x => x.estado !== 'esperar') || sug[0]).id;
   }
-  const mejor = [...db.plantillas]
-    .map(p => ({ id: p.id, r: cobertura(db, p.id).cubre }))
-    .sort((a, b) => b.r - a.r)[0];
-
+  const elegida = sug.find(x => x.id === S.plSel);
   const ult = sesionesTerminadas(db)[0];
 
   return [
     bloqueSemana(db),
+    lineaContexto(ctx),
 
     h('div', { class: 'stack tight' },
       h('span', { class: 'kicker', style: 'padding-left:2px' }, 'Entrenamiento'),
       h('div', { class: 'stack', style: 'gap:6px' },
-        db.plantillas.map(p => {
-          const sel = S.plSel === p.id;
-          const cob = cobertura(db, p.id);
-          const avisos = avisosRecuperacion(db, p.id);
+        sug.map(x => {
+          const sel = S.plSel === x.id;
+          const esperar = x.estado === 'esperar';
           return h('button', {
             class: 'listrow', style: 'min-height:60px;padding:10px 14px;' +
               (sel ? 'border-color:var(--fg);background:var(--surf-2)' : 'background:transparent'),
-            onclick: () => { S.plSel = p.id; mutar(() => {}); },
+            onclick: () => { S.plSel = x.id; mutar(() => {}); },
           },
             h('span', { class: 'txt' },
               h('b', { style: 'font-size:16px;color:' + (sel ? 'var(--fg)' : 'var(--fg-2)') },
-                p.nombre,
-                mejor && mejor.id === p.id && mejor.r > 0
-                  ? h('span', { class: 'badge on', style: 'margin-left:8px' }, 'Cubre más')
-                  : null,
+                x.nombre,
+                x.estado === 'mejor' ? h('span', { class: 'badge on', style: 'margin-left:8px' }, 'La que más suma') : null,
+                esperar ? h('span', { class: 'badge', style: 'margin-left:8px;color:var(--warn);border-color:var(--warn)' }, 'Mejor esperar') : null,
               ),
-              h('small', null,
-                `${seriesDePlantilla(db, p.id)} series · ${plural(itemsDe(db, p.id).length, 'ejercicio', 'ejercicios')}` +
-                (cob.cubre > 0 ? ` · cubre ${cob.cubre} de ${cob.deficit} que faltan` : ''),
-              ),
+              h('small', { style: esperar ? 'color:var(--warn)' : '' },
+                `${seriesDePlantilla(db, x.id)} series · ${x.motivo}`),
             ),
-            avisos.length
-              ? h('span', { class: 'chev', style: 'color:var(--warn)' }, icono('alerta', 17))
-              : null,
+            esperar ? h('span', { class: 'chev', style: 'color:var(--warn)' }, icono('alerta', 17)) : null,
           );
         }),
       ),
@@ -179,6 +170,22 @@ function bloqueElegir(db) {
       ),
     )),
   ];
+}
+
+/** Dónde estás parado en la semana, en una línea. */
+function lineaContexto(ctx) {
+  if (ctx.cumplida) {
+    return h('div', { class: 'note ok' }, icono('terminar', 14),
+      h('span', null, `Ya cumpliste las ${ctx.objetivo} sesiones de la semana. Lo que hagas de acá en más es extra.`));
+  }
+  const dias = ctx.diasRestantes === 1 ? 'queda 1 día' : `quedan ${ctx.diasRestantes} días`;
+  const ses = ctx.faltanSesiones === 1 ? 'falta 1 sesión' : `faltan ${ctx.faltanSesiones} sesiones`;
+  return h('div', { class: 'note' + (ctx.apretado ? '' : ' ok') },
+    icono(ctx.apretado ? 'alerta' : 'reloj', 14),
+    h('span', null, ctx.apretado
+      ? `${ses.charAt(0).toUpperCase() + ses.slice(1)} y ${dias}: ya no sobra ninguno.`
+      : `${ses.charAt(0).toUpperCase() + ses.slice(1)} y ${dias} de la semana.`),
+  );
 }
 
 /** El aviso de recuperación de la plantilla elegida, en detalle. */

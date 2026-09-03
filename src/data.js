@@ -17,7 +17,7 @@
 import { MUSCULOS, musculo, labelMusculo, UMBRAL_ESTIMULO } from './musculos.js';
 export { MUSCULOS, musculo, labelMusculo, UMBRAL_ESTIMULO };
 
-export const VERSION_DATOS = 8;
+export const VERSION_DATOS = 9;
 
 /** Salto de carga por tap. Editable por variante. */
 export const PASO = 2.5;
@@ -35,9 +35,14 @@ function mov(id, nombre, musculos, tips) {
 }
 
 /**
- * @param factor equivalencia aproximada contra la variante de referencia del
- *   movimiento (1 = la referencia). Solo se usa para comparar en los gráficos,
- *   nunca para precargar un peso convertido.
+ * @param factor equivalencia contra la variante de referencia del movimiento
+ *   (1 = la referencia). Solo se usa para comparar en los gráficos, nunca para
+ *   precargar un peso convertido.
+ *
+ *   En las torres de polea doble el factor es 0.5 y no es una estimación: el
+ *   cable reparte la carga entre dos ramales, así que el stack marca el doble
+ *   de lo que levantás. Para saber cuál tenés delante, tirá un metro del agarre
+ *   y mirá cuánto sube el stack: un metro es directa, medio metro es doble.
  */
 function va(id, ejercicioId, nombre, opts = {}) {
   const { tipo = 'peso', incremento = PASO, factor = 1, nota = '' } = opts;
@@ -73,6 +78,7 @@ const MOVIMIENTOS = [
     'Codo levemente flexionado y fijo. El movimiento sale del hombro, no del codo.',
     'Subí hasta la línea del hombro. Más arriba entra el trapecio y el deltoides deja de trabajar.',
     'Con polea hay tensión desde abajo, con mancuerna recién aparece cerca de la horizontal. Las dos sirven; la polea carga la parte estirada.',
+    'Si el gimnasio tiene dos torres, fijate cuál es: tirá un metro del agarre y mirá el stack. Si sube medio metro es polea doble y levantás la mitad de lo que marca. Cada torre es una variante aparte.',
   ]),
   mov('ex_pushdown', 'Extensión de tríceps en polea alta', ['triceps'], [
     'Codos pegados al costado y quietos: solo se mueve el antebrazo.',
@@ -196,11 +202,15 @@ const VARIANTES = [
   va('v_lateral_polea', 'ex_elevacion_lateral', 'Polea unilateral', {
     nota: 'Del lado opuesto a la polea: el cable cruza por delante y mantiene tensión abajo, donde el deltoides está estirado.' }),
   va('v_lateral_mancuernas', 'ex_elevacion_lateral', 'Mancuernas', { factor: 1.15, nota: 'Peso por mancuerna. Abajo no hay tensión: el estímulo se concentra arriba.' }),
+  va('v_lateral_polea_doble', 'ex_elevacion_lateral', 'Torre de polea doble', { factor: 0.5,
+    nota: 'El stack marca el doble de lo que levantás.' }),
   va('v_lateral_maquina', 'ex_elevacion_lateral', 'Máquina', { factor: 1.6 }),
 
   va('v_pushdown_barra', 'ex_pushdown', 'Barra recta'),
   va('v_pushdown_v', 'ex_pushdown', 'Barra en V'),
   va('v_pushdown_soga', 'ex_pushdown', 'Soga', { factor: 0.85 }),
+  va('v_pushdown_doble', 'ex_pushdown', 'Torre de polea doble', { factor: 0.5,
+    nota: 'El stack marca el doble de lo que levantás.' }),
 
   va('v_overhead_soga', 'ex_triceps_overhead', 'Polea con soga'),
   va('v_overhead_unilateral', 'ex_triceps_overhead', 'Polea unilateral', { factor: 0.55 }),
@@ -208,12 +218,16 @@ const VARIANTES = [
   // El hombro flexionado a 180 grados es lo que molesta el manguito. Acostado
   // queda cerca de 90 y el tríceps sigue estirado: se conserva casi todo el
   // beneficio sin la posición comprometida.
+  va('v_overhead_doble', 'ex_triceps_overhead', 'Torre de polea doble', { factor: 0.5,
+    nota: 'El stack marca el doble de lo que levantás.' }),
   va('v_overhead_acostado', 'ex_triceps_overhead', 'Acostado con barra Z', { factor: 1.4,
     nota: 'Hombro a 90 grados en vez de arriba del todo. La opción si el manguito molesta.' }),
   va('v_overhead_inclinado', 'ex_triceps_overhead', 'En banco inclinado', { factor: 1.2,
     nota: 'Intermedio: más estiramiento que acostado, menos exigencia de hombro que arriba.' }),
 
   va('v_triuni_polea', 'ex_triceps_unilateral', 'Polea, agarre supino'),
+  va('v_triuni_doble', 'ex_triceps_unilateral', 'Torre de polea doble', { factor: 0.5,
+    nota: 'El stack marca el doble de lo que levantás.' }),
 
   va('v_fondos_asistida', 'ex_fondos', 'Máquina asistida', { tipo: 'asistido',
     nota: 'El número es la ayuda de la máquina: bajarlo es progresar.' }),
@@ -238,8 +252,12 @@ const VARIANTES = [
   va('v_martillo_soga', 'ex_curl_martillo', 'Polea con soga', { factor: 2 }),
 
   va('v_facepull_polea', 'ex_face_pull', 'Polea con soga'),
+  va('v_facepull_doble', 'ex_face_pull', 'Torre de polea doble', { factor: 0.5,
+    nota: 'El stack marca el doble de lo que levantás.' }),
   va('v_posterior_maquina', 'ex_posterior', 'Máquina'),
   va('v_posterior_polea', 'ex_posterior', 'Poleas cruzadas', { factor: 0.7 }),
+  va('v_posterior_doble', 'ex_posterior', 'Torre de polea doble', { factor: 0.35,
+    nota: 'El stack marca el doble de lo que levantás.' }),
 
   va('v_prensa_45', 'ex_prensa', 'Prensa 45'),
   va('v_hack_maquina', 'ex_hack', 'Hack'),
@@ -616,6 +634,87 @@ export function cobertura(db, plantillaId, ref = Date.now()) {
     cubre += Math.min(m.falta, aporte[m.id] || 0);
   }
   return { cubre: Math.round(cubre * 2) / 2, deficit: Math.round(total * 2) / 2, ratio: total ? cubre / total : 0 };
+}
+
+// ---------- qué conviene hacer hoy ----------
+
+/**
+ * Dónde estás parado en la semana. Arranca el lunes.
+ * "Apretado" significa que necesitás entrenar tantos días como quedan: ya no
+ * sobra ninguno.
+ */
+export function contextoSemana(db, ref = Date.now()) {
+  const desde = inicioSemana(ref);
+  const diaIdx = Math.floor((ref - desde) / 864e5);
+  const diasRestantes = 7 - diaIdx;
+  const hechas = semanasEntrenadas(db, 1)[0].n;
+  const objetivo = db.config.objetivoSemanal;
+  const faltanSesiones = Math.max(0, objetivo - hechas);
+  return {
+    diasRestantes, hechas, objetivo, faltanSesiones,
+    apretado: faltanSesiones > 0 && faltanSesiones >= diasRestantes,
+    cumplida: faltanSesiones === 0,
+  };
+}
+
+/**
+ * Cuánto castiga a una plantilla el estado de recuperación. Un bloque que le da
+ * muchas series a un músculo recién entrenado paga más que uno que apenas lo
+ * roza: el castigo es proporcional a las series y a lo que falta recuperar.
+ */
+function castigoRecuperacion(db, plantillaId, ref) {
+  const aporte = aporteDePlantilla(db, plantillaId);
+  const horas = horasDesde(db, ref);
+  let castigo = 0;
+  const cuales = [];
+  for (const [id, series] of Object.entries(aporte)) {
+    if (series < UMBRAL_ESTIMULO) continue;
+    const m = musculo(id);
+    const h = horas[id];
+    if (h == null || h >= m.recuperacion) continue;
+    const falta = (m.recuperacion - h) / m.recuperacion;
+    castigo += series * falta;
+    cuales.push({ musculo: m, horas: Math.round(h), faltan: Math.round(m.recuperacion - h), series });
+  }
+  cuales.sort((a, b) => b.series - a.series);
+  return { castigo, cuales };
+}
+
+/**
+ * Ordena las plantillas por lo que suman hoy: cuánto déficit de la semana
+ * cubren, menos lo que cuesta pegarle a algo que todavía se está recuperando.
+ *
+ * Devuelve siempre el motivo. Una recomendación que no se puede auditar no
+ * sirve para decidir, sirve para obedecer.
+ */
+export function sugerencias(db, ref = Date.now()) {
+  const lista = db.plantillas.map(p => {
+    const cob = cobertura(db, p.id, ref);
+    const { castigo, cuales } = castigoRecuperacion(db, p.id, ref);
+    return {
+      id: p.id,
+      nombre: p.nombre,
+      cubre: cob.cubre,
+      deficit: cob.deficit,
+      castigo: Math.round(castigo * 10) / 10,
+      puntaje: cob.cubre - castigo,
+      enRecuperacion: cuales,
+    };
+  });
+  lista.sort((a, b) => b.puntaje - a.puntaje);
+
+  for (const x of lista) {
+    // Esperar solo cuando el costo de recuperación se come lo que aporta.
+    x.estado = (x.castigo >= x.cubre && x.enRecuperacion.length) ? 'esperar'
+      : (x === lista[0] && x.cubre > 0 ? 'mejor' : 'ok');
+    const r = x.enRecuperacion[0];
+    x.motivo = x.estado === 'esperar'
+      ? `${r.musculo.label} recupera en ${r.faltan} h`
+      : x.cubre > 0
+        ? `cubre ${x.cubre} de ${x.deficit} que faltan`
+        : 'la semana ya está cubierta';
+  }
+  return lista;
 }
 
 // ---------- adherencia ----------

@@ -12,7 +12,8 @@ import {
   cambiarVariante, agregarEjercicio,
 } from './session.js';
 import {
-  fRango, fEsfuerzo, etiquetaCarga, variante, variantesDe, nombreCompleto, labelMusculo,
+  fRango, fEsfuerzo, esfuerzoDeSerie, etiquetaCarga, variante, variantesDe,
+  nombreCompleto, labelMusculo,
 } from './data.js';
 
 let tGuardar = null;
@@ -89,7 +90,7 @@ function vistaEntrenar(db, ses) {
     }, h('span', null, `Deshacer: ${undoLbl}`), icono('deshacer', 16)),
   );
 
-  const esf = fEsfuerzo(s.rirMin, s.rirMax);
+  const esf = esfuerzoDeSerie(s);
   const hayVariantes = variantesDe(db, s.ejercicioId).length > 1;
   const cabeza = h('div', { class: 'ex-head' },
     h('h2', null, mov?.nombre ?? 'Ejercicio'),
@@ -102,8 +103,9 @@ function vistaEntrenar(db, ses) {
         icono('tecnica', 14), 'Técnica'),
     ),
     h('div', { class: 'sub num' },
-      `Serie ${s.serieIdx + 1} de ${s.series} · ${fRango(s.repsMin, s.repsMax)} reps` +
-      (esf ? ` · Objetivo ${esf}` : '')),
+      `Serie ${s.serieIdx + 1} de ${s.series} · ${fRango(s.repsMin, s.repsMax)} reps`,
+      esf ? h('span', { class: esf.ultima ? 'acc' : '' },
+        ` · ${esf.rir} en el tanque${esf.ultima ? ', apretá esta' : ''}`) : null),
   );
 
   const pesoTxt = h('b', { class: 'num' }, fPeso(d.peso));

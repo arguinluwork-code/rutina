@@ -2,6 +2,7 @@ import { h, hace, plural, confirmar, toast, fFechaLarga, icono } from './ui.js';
 import { S, ir, mutar, volver, reemplazarDb } from './app.js';
 import { tomarFoto, fotos, restaurarFoto } from './db.js';
 import { sinRespaldar } from './s-inicio.js';
+import * as nube from './nube.js';
 
 function nombreArchivo() {
   const d = new Date();
@@ -127,14 +128,7 @@ export function pantallaDatos(db) {
 
         h('hr', { class: 'hr' }),
 
-        h('div', { class: 'stack tight' },
-          h('span', { class: 'kicker' }, 'Respaldo en la nube'),
-          h('div', { class: 'card' }, h('div', { class: 'card-pad' },
-            h('span', { class: 'sub', style: 'line-height:1.45' },
-              'Todavía no está construido. Hasta que lo esté, la red de seguridad es exportar el archivo ' +
-              'y guardarlo donde vos quieras.'),
-          )),
-        ),
+        bloqueNube(db),
 
         h('hr', { class: 'hr' }),
 
@@ -163,4 +157,124 @@ export function pantallaDatos(db) {
       ),
     ),
   );
+}
+
+
+// ---------------------------------------------------------------- nube
+
+/**
+ * Respaldo en Supabase. La cuenta se crea sola y anónima, sin pantalla de
+ * registro; vincular un mail es opcional y sirve para recuperar los datos en
+ * otro teléfono.
+ */
+function bloqueNube(db) {
+  const est = nube.estado();
+  const caja = h('div', { class: 'stack tight' });
+
+  const estadoTxt = h('span', { class: 'tiny num' });
+  const pintarEstado = () => {
+    const t = db.meta.ultimoRespaldo;
+    estadoTxt.textContent = !est.activo
+      ? 'Desactivado. Los datos viven solo en este teléfono.'
+      : t ? `Último respaldo: ${fFechaLarga(t)} (${hace(t)})`
+          : 'Activo, todavía sin respaldar.';
+  };
+  pintarEstado();
+
+  const subir = async (btn) => {
+    btn.disabled = true;
+    try {
+      const r = await nube.respaldar(S.db);
+      mutar(d => { d.meta.ultimoRespaldo = Date.now(); });
+      toast(`Respaldado: ${r.sesiones} sesiones, ${r.series} series`);
+    } catch (e) {
+      toast('No se pudo respaldar: ' + e.message);
+    } finally { btn.disabled = false; }
+  };
+
+  if (!est.activo) {
+    caja.append(
+      h('span', { class: 'kicker' }, 'Respaldo en la nube'),
+      h('span', { class: 'tiny', style: 'line-height:1.45' },
+        'Crea una cuenta anónima al vuelo: sin registro ni contraseña. ' +
+        'Después podés vincular un mail para recuperar los datos si perdés el teléfono.'),
+      h('button', {
+        class: 'btn primary',
+        onclick: async (e) => {
+          const b = e.currentTarget; b.disabled = true;
+          try { await nube.activar(); await subir(b); mutar(() => {}); }
+          catch (er) { toast('No se pudo activar: ' + er.message); b.disabled = false; }
+        },
+      }, icono('nube', 17), 'Activar respaldo'),
+    );
+    return caja;
+  }
+
+  const mailIn = h('input', { type: 'email', placeholder: 'tu@mail.com', enterkeyhint: 'done' });
+
+  caja.append(
+    h('span', { class: 'kicker' }, 'Respaldo en la nube'),
+    estadoTxt,
+    h('button', {
+      class: 'btn primary',
+      onclick: (e) => subir(e.currentTarget),
+    }, icono('exportar', 17), 'Respaldar ahora'),
+
+    h('button', {
+      class: 'btn',
+      onclick: async () => {
+        try {
+          const r = await nube.resumenRemoto();
+          if (!r || !r.sesiones) { toast('No hay nada respaldado todavía'); return; }
+          confirmar({
+            titulo: '¿Traer lo de la nube?',
+            texto: `En la nube hay ${plural(r.sesiones, 'sesión', 'sesiones')} y ${r.series} series.
+` +
+                   `Acá tenés ${plural(db.sesiones.length, 'sesión', 'sesiones')}.
+
+` +
+                   'Reemplaza todo lo de este teléfono. Antes se guarda una copia de lo actual.',
+            ok: 'Traer',
+            onOk: async () => {
+              await tomarFoto(S.db, 'antes de traer de la nube');
+              const traido = await nube.traer();
+              if (!traido) { toast('No había nada para traer'); return; }
+              reemplazarDb(traido);
+              toast('Datos traídos de la nube');
+            },
+          });
+        } catch (e) { toast('No se pudo consultar: ' + e.message); }
+      },
+    }, icono('importar', 17), 'Traer de la nube'),
+
+    est.anonimo
+      ? h('div', { class: 'field', style: 'padding-top:6px' },
+          h('span', { class: 'tiny', style: 'line-height:1.45' },
+            'La cuenta es anónima: si perdés el teléfono, se pierde el acceso. ' +
+            'Vinculá un mail y te llega un link, sin contraseña.'),
+          mailIn,
+          h('button', {
+            class: 'btn',
+            onclick: async () => {
+              const mail = mailIn.value.trim();
+              if (!mail.includes('@')) { toast('Poné un mail válido'); return; }
+              try { await nube.vincularMail(mail); toast('Te mandamos un link a ' + mail); }
+              catch (e) { toast('No se pudo: ' + e.message); }
+            },
+          }, 'Vincular mail'),
+        )
+      : h('span', { class: 'tiny num' }, 'Cuenta vinculada a ' + est.mail),
+
+    h('button', {
+      class: 'btn ghost', style: 'height:44px;color:var(--fg-2);font-size:13px',
+      onclick: () => confirmar({
+        titulo: '¿Desactivar el respaldo?',
+        texto: 'Se cierra la sesión en este teléfono. Lo que ya está en la nube no se borra, ' +
+               'pero sin mail vinculado no vas a poder volver a entrar.',
+        ok: 'Desactivar', peligro: true,
+        onOk: () => { nube.desactivar(); mutar(() => {}); toast('Respaldo desactivado'); },
+      }),
+    }, 'Desactivar'),
+  );
+  return caja;
 }

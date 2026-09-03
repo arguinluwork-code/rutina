@@ -1,6 +1,7 @@
 # Rutina
 
-App personal de entrenamiento. PWA, sin build, sin dependencias, sin backend.
+App personal de entrenamiento. PWA, sin build ni dependencias, local-first, con
+respaldo en Supabase.
 
 **En línea:** https://arguinluwork-code.github.io/rutina/
 
@@ -54,6 +55,8 @@ src/session.js     motor de la sesión: cursor, deshacer, descanso
 src/ui.js          helpers de DOM, formato, audio, wake lock
 src/charts.js      gráficos en SVG
 src/app.js         estado global y navegación
+src/musculos.js    taxonomía y objetivos semanales, con su fundamento
+src/nube.js        respaldo en Supabase, sin dependencias
 src/icons.js       íconos de Lucide (ISC), empaquetados
 src/s-*.js         una pantalla por archivo
 ```
@@ -98,8 +101,37 @@ es más vieja:
   número de versión y la rutina vieja queda como está. Los cambios de rutina
   son decisión tuya, no de una actualización.
 
+## Respaldo en la nube
+
+Proyecto de Supabase `rutina` (`iaryulfcoisvkytfbuhk`, São Paulo). El esquema
+vive en `supabase/migrations/` y se aplica con `supabase db push`.
+
+La app **no deja de ser local-first**: el teléfono sigue siendo la fuente de
+verdad mientras entrenás, porque en el gimnasio no hay señal. Supabase es el
+respaldo durable y la capa de análisis.
+
+- **Cuenta anónima al vuelo**, sin pantalla de registro ni contraseña. Vincular
+  un mail es opcional y sirve para recuperar los datos en otro teléfono.
+- **Respaldar** sube todo por upsert y marca como borrado lo que ya no está
+  acá. **Traer** baja todo y reconstruye, siempre preguntando antes y con una
+  copia de seguridad previa.
+- **RLS en todas las tablas**, verificado: sin sesión no se ve una sola fila, y
+  un usuario no puede leer ni escribir las de otro. Con sign-in anónimo activado
+  todo usuario lleva el rol `authenticated`, así que ninguna política confía en
+  el rol solo: todas comparan contra `auth.uid()`.
+- **`vista_series`** con `security_invoker`, para consultar volumen por semana
+  en SQL sin saltear los permisos.
+- El cliente (`src/nube.js`) **no usa supabase-js**: traerlo de un CDN rompería
+  la propiedad de que la app no pide nada a la red en ejecución, que es lo que
+  la hace andar sin conexión. Contra PostgREST y GoTrue alcanza con fetch.
+
+La clave `anon` está en el código del cliente a propósito: es pública por
+diseño y lo que protege los datos es RLS. La `service_role` no está en el repo
+y no debe estarlo nunca.
+
 ## Lo que no está construido
 
-- **Respaldo en la nube.** Necesita un servidor; la pantalla de Datos lo dice
-  en vez de simularlo. La red de seguridad es exportar el archivo.
+- **Sincronización automática entre dos teléfonos.** Hoy es respaldo y
+  restauración explícitos, que es lo que corresponde a un usuario con un
+  teléfono. Un motor de conflictos sería complejidad que nunca se ejercita.
 - **Superseries**, deliberadamente fuera de alcance.

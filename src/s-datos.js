@@ -154,9 +154,39 @@ export function pantallaDatos(db) {
             },
           }),
         }, icono('basura', 17), 'Borrar todo'),
+
+        filaVersion(db),
       ),
     ),
   );
+}
+
+/**
+ * Qué versión está corriendo. El nombre sale del caché activo, así que no hay
+ * que acordarse de actualizarlo a mano y no puede mentir. Si te quedaste con
+ * una versión vieja, acá se ve.
+ */
+function filaVersion(db) {
+  const linea = h('span', { class: 'tiny num', style: 'text-align:center;padding:8px 0' }, 'Versión —');
+  if ('caches' in window) {
+    caches.keys().then(ks => {
+      const v = ks.find(k => k.startsWith('rutina-')) || 'sin caché';
+      linea.textContent = `${v} · datos v${db.v}`;
+    }).catch(() => {});
+  } else {
+    linea.textContent = `datos v${db.v}`;
+  }
+  return h('button', {
+    style: 'background:none;width:100%',
+    onclick: async () => {
+      try {
+        const reg = await navigator.serviceWorker?.getRegistration();
+        if (!reg) { toast('Sin service worker: estás en modo sin caché'); return; }
+        await reg.update();
+        toast('Buscando versión nueva…');
+      } catch { toast('No se pudo comprobar'); }
+    },
+  }, linea);
 }
 
 

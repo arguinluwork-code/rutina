@@ -308,8 +308,45 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden' && S.db) { guardar(S.db); nube.subirAhora(S.db); }
 });
 
+// ---------- actualizaciones ----------
+//
+// Sin esto la app se queda con la version cacheada y no hay forma de enterarse:
+// el service worker nuevo se instala pero la pantalla abierta sigue corriendo
+// el codigo viejo hasta que alguien recargue a mano.
+
+let recargando = false;
+function aplicarActualizacion() {
+  if (recargando) return;
+  // Recargar en medio de una serie seria una groseria. Todo esta persistido,
+  // asi que esperar a que termine no cuesta nada.
+  if (S.db?.sesionAbierta) {
+    toast('Hay una versión nueva. Se aplica al terminar el entrenamiento.');
+    return;
+  }
+  recargando = true;
+  location.reload();
+}
+
 if ('serviceWorker' in navigator && location.protocol === 'https:') {
-  navigator.serviceWorker.register('./sw.js').catch(() => {});
+  navigator.serviceWorker.register('./sw.js').then((reg) => {
+    reg.addEventListener('updatefound', () => {
+      const entrante = reg.installing;
+      if (!entrante) return;
+      entrante.addEventListener('statechange', () => {
+        if (entrante.state === 'activated') aplicarActualizacion();
+      });
+    });
+    // Una app instalada puede pasar dias sin navegar, que es cuando el
+    // navegador chequearia solo. Se pregunta al abrir y al volver a ella.
+    const chequear = () => { reg.update().catch(() => {}); };
+    chequear();
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') chequear();
+    });
+    setInterval(chequear, 15 * 60e3);
+  }).catch(() => {});
+
+  navigator.serviceWorker.addEventListener('controllerchange', aplicarActualizacion);
 }
 
 arrancar();

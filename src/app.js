@@ -1,14 +1,16 @@
 // Arranque, estado global y navegación.
 
-import { cargar, guardar, pedirPersistencia } from './db.js';
+import { cargar, guardar, pedirPersistencia, tomarFoto } from './db.js';
 import { semillaInicial, VERSION_DATOS, PASO } from './data.js';
-import { tomarFoto } from './db.js';
 import { h, vaciar, cerrarHoja, confirmar, icono, toast, mmss, pitido, mantenerPantalla } from './ui.js';
 import { ABANDONO_MS, terminarSesion, descartarSesion, restanteDescanso } from './session.js';
 
 import { pantallaInicio } from './s-inicio.js';
 import { pantallaEntrenar } from './s-entrenar.js';
-import { pantallaRutina, pantallaDia, pantallaEditarEj, pantallaVersiones } from './s-rutina.js';
+import {
+  pantallaPlantillas, pantallaPlantilla, pantallaItem, pantallaMovimiento,
+  pantallaVersiones, pantallaObjetivos,
+} from './s-plantillas.js';
 import { pantallaHistorial, pantallaSesion, pantallaFicha } from './s-historial.js';
 import { pantallaProgreso } from './s-progreso.js';
 import { pantallaDatos } from './s-datos.js';
@@ -22,15 +24,17 @@ export const S = {
   tickers: [],
 };
 
-const RAIZ = { entrenar: 'inicio', rutina: 'rutina', historial: 'historial', progreso: 'progreso' };
+const RAIZ = { entrenar: 'inicio', rutina: 'plantillas', historial: 'historial', progreso: 'progreso' };
 
 const PANTALLAS = {
   inicio: pantallaInicio,
   entrenar: pantallaEntrenar,
-  rutina: pantallaRutina,
-  dia: pantallaDia,
-  'editar-ej': pantallaEditarEj,
+  plantillas: pantallaPlantillas,
+  plantilla: pantallaPlantilla,
+  item: pantallaItem,
+  movimiento: pantallaMovimiento,
   versiones: pantallaVersiones,
+  objetivos: pantallaObjetivos,
   historial: pantallaHistorial,
   sesion: pantallaSesion,
   ficha: pantallaFicha,
@@ -50,6 +54,7 @@ export function reemplazarDb(nuevo) {
   S.db = nuevo;
   guardar(S.db);
   S.pila = [];
+  S.borrador = null;
   S.ruta = { n: RAIZ[S.tab] };
   render();
 }
@@ -83,7 +88,8 @@ export function render() {
   vaciar(app);
   // La barra de tabs no se esconde nunca, ni entrenando: se puede ir a mirar el
   // historial y volver sin perder nada.
-  app.append(cuerpo, franjaSesion(), barraTabs());
+  // El filtro no es cosmético: Node.append(null) inserta el texto "null".
+  app.append(...[cuerpo, franjaSesion(), barraTabs()].filter(Boolean));
   document.getElementById('overlay-root').replaceChildren();
 }
 
@@ -97,7 +103,7 @@ function franjaSesion() {
   if (!ses || S.ruta.n === 'entrenar') return null;
 
   const set = ses.sets.find(x => x.id === ses.cursor) || ses.sets[0];
-  const ej = S.db.ejercicios[set?.ejercicioId];
+  const mov = set ? S.db.ejercicios[set.ejercicioId] : null;
   const hechas = ses.sets.filter(x => x.estado === 'hecha').length;
 
   const barra = h('span', { class: 'franja-barra' });
@@ -112,7 +118,9 @@ function franjaSesion() {
     barra.style.width = descansando ? (resta / ses.rest.dur * 100) + '%' : '0%';
     sub.textContent = descansando
       ? `Descanso · serie ${(set?.serieIdx ?? 0) + 1}`
-      : `Serie ${(set?.serieIdx ?? 0) + 1} de ${set?.series ?? 0} · ${hechas} hechas`;
+      : set
+        ? `Serie ${(set.serieIdx ?? 0) + 1} de ${set.series} · ${hechas} hechas`
+        : 'Sin ejercicios todavía';
   };
   pintar();
   S.tickers.push(pintar);
@@ -123,7 +131,7 @@ function franjaSesion() {
   },
     barra,
     h('span', { class: 'franja-txt' },
-      h('b', null, ej?.nombre ?? 'Entrenamiento'),
+      h('b', null, mov?.nombre ?? ses.plantillaNombre ?? 'Entrenamiento'),
       sub,
     ),
     reloj,
@@ -162,28 +170,64 @@ setInterval(() => {
 
 /**
  * Lleva la base guardada al formato actual. Nunca pisa entrenamientos: si ya
- * hay sesiones cargadas, se conserva la rutina que tenías y solo se ajusta lo
- * que no es una decisión tuya.
+ * hay sesiones cargadas se conserva todo y solo se cambia la forma.
  */
 async function migrar(db) {
   const desde = db.v || 1;
   if (desde >= VERSION_DATOS) return db;
 
   await tomarFoto(db, `antes de actualizar del formato ${desde}`);
+  const virgen = db.sesiones.length === 0 && !db.sesionAbierta;
 
-  // v2: rutina nueva. Sin nada registrado no hay nada que perder.
-  if (desde < 2 && db.sesiones.length === 0 && !db.sesionAbierta) {
+  // Sin nada registrado no hay nada que preservar: se resiembra con el modelo
+  // nuevo, que además trae las plantillas calibradas contra los objetivos.
+  if (virgen) {
     const nuevo = semillaInicial();
     guardar(nuevo);
     return nuevo;
   }
 
-  // v3: un solo salto de carga para todos los ejercicios.
   if (desde < 3) {
-    for (const e of Object.values(db.ejercicios)) e.incremento = PASO;
+    for (const e of Object.values(db.ejercicios || {})) e.incremento = PASO;
   }
 
-  if (desde < 2) S.avisoRutina = true;
+  // v4: aparecen las variantes y los días pasan a ser plantillas.
+  if (desde < 4) {
+    db.variantes = db.variantes || {};
+    for (const e of Object.values(db.ejercicios || {})) {
+      const vid = `${e.id}__v`;
+      db.variantes[vid] = {
+        id: vid, ejercicioId: e.id, nombre: 'Estándar',
+        tipo: e.tipo || 'peso', incremento: e.incremento ?? PASO,
+        factor: 1, nota: '', ultimo: e.ultimo || null,
+      };
+      delete e.tipo; delete e.incremento; delete e.ultimo;
+    }
+    db.plantillas = (db.rutina?.dias || []).map(d => ({
+      id: d.id, nombre: d.nombre, foco: d.foco || '',
+      versionActual: d.versionActual,
+      versiones: d.versiones.map(v => ({
+        ...v,
+        items: v.items.map(it => ({ ...it, varianteId: `${it.ejercicioId}__v` })),
+      })),
+    }));
+    db.config = { objetivoSemanal: db.rutina?.objetivoSemanal ?? 4, maxSeriesSesion: 24 };
+    delete db.rutina;
+    for (const s of db.sesiones) {
+      s.plantillaNombre = s.plantillaNombre ?? s.diaNombre;
+      s.plantillaId = s.plantillaId ?? s.diaId;
+      delete s.diaNombre; delete s.diaId;
+      for (const x of s.sets) x.varianteId = x.varianteId ?? `${x.ejercicioId}__v`;
+    }
+    if (db.sesionAbierta) {
+      const s = db.sesionAbierta;
+      s.plantillaNombre = s.plantillaNombre ?? s.diaNombre;
+      s.plantillaId = s.plantillaId ?? s.diaId;
+      for (const x of s.sets) x.varianteId = x.varianteId ?? `${x.ejercicioId}__v`;
+    }
+    S.avisoModelo = true;
+  }
+
   db.v = VERSION_DATOS;
   guardar(db);
   return db;
@@ -204,7 +248,7 @@ async function arrancar() {
     render();
     confirmar({
       titulo: 'Tenías un entrenamiento abierto',
-      texto: `${ses.diaNombre} — ${new Date(ses.inicio).toLocaleDateString('es-AR')}\n` +
+      texto: `${ses.plantillaNombre} — ${new Date(ses.inicio).toLocaleDateString('es-AR')}\n` +
              `${ses.sets.filter(s => s.estado === 'hecha').length} series cargadas.\n\n` +
              '¿Lo retomás o lo cerrás así como está?',
       ok: 'Cerrarlo así',
@@ -213,9 +257,9 @@ async function arrancar() {
     return;
   }
   render();
-  if (S.avisoRutina) {
-    S.avisoRutina = false;
-    toast('La rutina vieja se conservó porque ya tenés sesiones cargadas');
+  if (S.avisoModelo) {
+    S.avisoModelo = false;
+    toast('Tus días pasaron a ser plantillas y se conservó todo el historial');
   }
 }
 

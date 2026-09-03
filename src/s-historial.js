@@ -4,7 +4,8 @@ import {
 } from './ui.js';
 import { S, ir, mutar, volver } from './app.js';
 import {
-  sesionesTerminadas, historialEj, maximoEj, ultimoEj, sesionesConEj, UMBRALES, etiquetaCarga,
+  sesionesTerminadas, historialEj, maximoEj, ultimoEj, sesionesConEj, UMBRALES,
+  etiquetaCarga, variante, variantesDe, nombreCompleto, pesoNormalizado, labelMusculo,
 } from './data.js';
 import { graficoLinea, graficoBarras, tarjetaGrafico, vacio } from './charts.js';
 
@@ -28,7 +29,8 @@ export function pantallaHistorial(db) {
     ),
     h('div', { class: 'scr-scroll' },
       ss.length === 0
-        ? h('div', { class: 'empty', style: 'margin-top:20px' }, 'Todavía no hay sesiones terminadas. Cuando cierres tu primer entrenamiento va a aparecer acá.')
+        ? h('div', { class: 'empty', style: 'margin-top:20px' },
+            'Todavía no hay sesiones terminadas. Cuando cierres tu primer entrenamiento va a aparecer acá.')
         : h('div', { class: 'stack', style: 'padding-top:8px' },
             porMes.map(g => h('div', { class: 'stack tight' },
               h('span', { class: 'sec-title' }, g.k),
@@ -36,7 +38,7 @@ export function pantallaHistorial(db) {
                 const hechas = s.sets.filter(x => x.estado === 'hecha').length;
                 return h('button', { class: 'listrow', onclick: () => ir({ n: 'sesion', id: s.id }) },
                   h('span', { class: 'txt' },
-                    h('b', null, s.diaNombre),
+                    h('b', null, s.plantillaNombre ?? 'Sesión'),
                     h('small', null, `${fFecha(s.inicio)} · ${fDuracion(s.fin - s.inicio)} · ${plural(hechas, 'serie', 'series')}`),
                   ),
                   chev(),
@@ -57,7 +59,7 @@ export function pantallaSesion(db, ruta) {
   const grupos = [];
   for (const x of s.sets) {
     let g = grupos.find(y => y.exIdx === x.exIdx);
-    if (!g) { g = { exIdx: x.exIdx, ejercicioId: x.ejercicioId, sets: [] }; grupos.push(g); }
+    if (!g) { g = { exIdx: x.exIdx, ejercicioId: x.ejercicioId, varianteId: x.varianteId, sets: [] }; grupos.push(g); }
     g.sets.push(x);
   }
   grupos.sort((a, b) => a.exIdx - b.exIdx);
@@ -66,37 +68,35 @@ export function pantallaSesion(db, ruta) {
   return h('main', { class: 'scr' },
     h('div', { class: 'hd-back' },
       h('button', { class: 'back', onclick: volver }, icono('atras', 24, 2.25)),
-      h('h1', null, s.diaNombre),
+      h('h1', null, s.plantillaNombre ?? 'Sesión'),
     ),
     h('span', { class: 'tiny num', style: 'flex:none' },
-      `${fFechaLarga(s.inicio)} · ${fDuracion(s.fin - s.inicio)} · ${hechas} series · corrida con la versión ${s.versionN}`),
+      `${fFechaLarga(s.inicio)} · ${fDuracion(s.fin - s.inicio)} · ${plural(hechas, 'serie', 'series')}` +
+      (s.versionN ? ` · versión ${s.versionN}` : '')),
     h('div', { class: 'scr-scroll', style: 'padding-top:14px' },
       h('div', { class: 'stack' },
-        grupos.map(g => {
-          const ej = db.ejercicios[g.ejercicioId];
-          return h('div', { class: 'grp' },
-            h('div', { class: 'grp-hd' },
-              h('button', {
-                style: 'background:none;font-size:16px;font-weight:700;color:var(--fg);text-align:left',
-                onclick: () => ir({ n: 'ficha', ejercicioId: g.ejercicioId }),
-              }, ej?.nombre ?? '—'),
-              h('span', { class: 'tiny num' }, `${g.sets.filter(x => x.estado === 'hecha').length} de ${g.sets.length}`),
+        grupos.map(g => h('div', { class: 'grp' },
+          h('div', { class: 'grp-hd' },
+            h('button', {
+              style: 'background:none;font-size:16px;font-weight:700;color:var(--fg);text-align:left',
+              onclick: () => ir({ n: 'ficha', ejercicioId: g.ejercicioId }),
+            }, nombreCompleto(db, g.ejercicioId, g.varianteId)),
+            h('span', { class: 'tiny num' }, `${g.sets.filter(x => x.estado === 'hecha').length} de ${g.sets.length}`),
+          ),
+          g.sets.map(x => h('button', {
+            class: 'setrow' + (x.estado === 'hecha' ? '' : ' pend'),
+            onclick: () => hojaCorregir(db, x),
+          },
+            h('i', null, x.estado === 'hecha' ? icono('tilde', 14) : null),
+            h('span', { class: 'num' },
+              x.estado === 'hecha'
+                ? `Serie ${x.serieIdx + 1} — ${fPeso(x.peso)} kg × ${x.reps}`
+                : `Serie ${x.serieIdx + 1} — salteada`,
+              x.rir ? h('em', null, ` · ${x.rir === 'Fallo' ? 'al fallo' : x.rir + ' en el tanque'}`) : null,
             ),
-            g.sets.map(x => h('button', {
-              class: 'setrow' + (x.estado === 'hecha' ? '' : ' pend'),
-              onclick: () => hojaCorregir(db, s, x),
-            },
-              h('i', null, x.estado === 'hecha' ? icono('tilde', 14) : null),
-              h('span', { class: 'num' },
-                x.estado === 'hecha'
-                  ? `Serie ${x.serieIdx + 1} — ${fPeso(x.peso)} kg × ${x.reps}`
-                  : `Serie ${x.serieIdx + 1} — salteada`,
-                x.rir ? h('em', null, ` · ${x.rir === 'Fallo' ? 'al fallo' : x.rir + ' en el tanque'}`) : null,
-              ),
-              chev(),
-            )),
-          );
-        }),
+            chev(),
+          )),
+        )),
         h('button', {
           class: 'btn danger', style: 'margin-top:8px',
           onclick: () => confirmar({
@@ -111,21 +111,20 @@ export function pantallaSesion(db, ruta) {
               volver();
             },
           }),
-        }, 'Borrar sesión'),
+        }, icono('basura', 17), 'Borrar sesión'),
       ),
     ),
   );
 }
 
 /** Corrige una serie ya registrada, de cualquier sesión. */
-function hojaCorregir(db, ses, set) {
-  const ej = db.ejercicios[set.ejercicioId];
-  const paso = ej?.incremento ?? 2.5;
+function hojaCorregir(db, set) {
+  const vr = variante(db, set.varianteId);
+  const paso = vr?.incremento ?? 2.5;
   const tmp = {
     peso: set.peso ?? 0,
     reps: set.reps ?? (set.repsMin || 8),
     rir: set.rir ?? null,
-    estado: set.estado,
   };
 
   const pesoTxt = h('b', { class: 'num' }, fPeso(tmp.peso));
@@ -145,10 +144,10 @@ function hojaCorregir(db, ses, set) {
 
   abrirHoja({
     titulo: `Serie ${set.serieIdx + 1}`,
-    meta: ej?.nombre ?? '',
+    meta: nombreCompleto(db, set.ejercicioId, set.varianteId),
     cuerpo: [
       h('div', { class: 'stepper' },
-        h('div', { class: 'stepper-hd' }, h('span', { class: 'kicker' }, etiquetaCarga(ej))),
+        h('div', { class: 'stepper-hd' }, h('span', { class: 'kicker' }, etiquetaCarga(vr))),
         h('div', { class: 'stepper-body' },
           stepBtn('−', () => { tmp.peso = Math.max(0, Math.round((tmp.peso - paso) * 2) / 2); pesoTxt.textContent = fPeso(tmp.peso); }),
           h('div', { class: 'sval' }, pesoTxt, h('span', null, 'kg')),
@@ -169,7 +168,8 @@ function hojaCorregir(db, ses, set) {
         class: 'btn', style: 'color:var(--fg-2)',
         onclick: () => {
           mutar(() => { set.estado = set.estado === 'hecha' ? 'salteada' : 'hecha'; });
-          cerrarHoja(); toast(set.estado === 'hecha' ? 'Marcada como hecha' : 'Marcada como salteada');
+          cerrarHoja();
+          toast(set.estado === 'hecha' ? 'Marcada como hecha' : 'Marcada como salteada');
         },
       }, set.estado === 'hecha' ? 'Marcar como salteada' : 'Marcar como hecha'),
     ],
@@ -186,13 +186,13 @@ function hojaCorregir(db, ses, set) {
   });
 }
 
-// ------------------------------------------------------------ ficha de ejercicio
+// ------------------------------------------------------------ ficha
 
-/** Momentos en que cambió alguna rutina que contiene este ejercicio. */
+/** Momentos en que cambió alguna plantilla que contiene este movimiento. */
 function marcasDeVersion(db, ejercicioId) {
   const out = [];
-  for (const d of db.rutina.dias) {
-    for (const v of d.versiones) {
+  for (const p of db.plantillas) {
+    for (const v of p.versiones) {
       if (v.n > 1 && v.items.some(i => i.ejercicioId === ejercicioId)) out.push(v.ts);
     }
   }
@@ -200,69 +200,97 @@ function marcasDeVersion(db, ejercicioId) {
 }
 
 export function pantallaFicha(db, ruta) {
-  const ej = db.ejercicios[ruta.ejercicioId];
-  if (!ej) { queueMicrotask(volver); return h('main', { class: 'scr' }); }
+  const mov = db.ejercicios[ruta.ejercicioId];
+  if (!mov) { queueMicrotask(volver); return h('main', { class: 'scr' }); }
 
-  const hist = historialEj(db, ej.id);
-  const max = maximoEj(db, ej.id);
-  const ult = ultimoEj(db, ej.id);
-  const nSes = sesionesConEj(db, ej.id);
+  const vars = variantesDe(db, mov.id);
+  const usadas = vars.filter(v => historialEj(db, mov.id, { varianteId: v.id }).length > 0);
+  if (S.fichaVar && !vars.some(v => v.id === S.fichaVar)) S.fichaVar = null;
+  const filtro = S.fichaVar;
 
-  // Un punto por sesión: la serie más pesada de esa sesión.
+  const hist = historialEj(db, mov.id, { varianteId: filtro });
+  const max = maximoEj(db, mov.id, { varianteId: filtro });
+  const ult = ultimoEj(db, mov.id, { varianteId: filtro });
+  const nSes = new Set(hist.map(x => x.sesionId)).size;
+
+  // Un punto por sesión: la serie más pesada, normalizada por el factor de la
+  // variante para que se puedan comparar entre sí en el mismo gráfico.
   const porSesion = [];
   for (const x of hist) {
     let g = porSesion.find(p => p.sesionId === x.sesionId);
-    if (!g) { g = { sesionId: x.sesionId, x: x.fecha, top: 0, vol: 0, rir: null }; porSesion.push(g); }
-    if (x.peso > g.top) { g.top = x.peso; g.rir = x.rir; }
-    g.vol += x.peso * x.reps;
+    if (!g) { g = { sesionId: x.sesionId, x: x.fecha, top: 0, vol: 0, rir: null, varianteId: x.varianteId }; porSesion.push(g); }
+    const norm = pesoNormalizado(db, x);
+    if (norm > g.top) { g.top = norm; g.rir = x.rir; g.varianteId = x.varianteId; }
+    g.vol += norm * x.reps;
   }
   porSesion.sort((a, b) => a.x - b.x);
 
-  const faltanCarga = Math.max(0, UMBRALES.carga - nSes);
-  const marcas = marcasDeVersion(db, ej.id);
+  const faltan = Math.max(0, UMBRALES.carga - nSes);
+  const marcas = marcasDeVersion(db, mov.id);
+  const asistido = variante(db, max?.varianteId)?.tipo === 'asistido';
+  const mezcla = !filtro && new Set(porSesion.map(p => p.varianteId)).size > 1;
 
   const dato = (kick, valor) => h('div', { class: 'card', style: 'flex:1' },
     h('div', { class: 'card-pad', style: 'gap:4px' },
       h('span', { class: 'kicker' }, kick),
-      h('span', { class: 'num', style: 'font-size:17px;font-weight:700' }, valor),
+      h('span', { class: 'num', style: 'font-size:16px;font-weight:700;line-height:1.3' }, valor),
     ));
+
+  const filtroChips = usadas.length > 1 ? h('div', { class: 'chips' },
+    h('button', {
+      class: 'chip' + (!filtro ? ' on' : ''), style: 'height:36px;font-size:13px',
+      onclick: () => { S.fichaVar = null; mutar(() => {}); },
+    }, 'Todas'),
+    ...usadas.map(v => h('button', {
+      class: 'chip' + (filtro === v.id ? ' on' : ''), style: 'height:36px;font-size:13px',
+      onclick: () => { S.fichaVar = v.id; mutar(() => {}); },
+    }, v.nombre)),
+  ) : null;
 
   return h('main', { class: 'scr' },
     h('div', { class: 'hd-back' },
       h('button', { class: 'back', onclick: volver }, icono('atras', 24, 2.25)),
-      h('h1', null, ej.nombre),
+      h('h1', null, mov.nombre),
     ),
     h('div', { class: 'scr-scroll', style: 'padding-top:8px' },
       h('div', { class: 'stack' },
+        h('span', { class: 'tiny' }, [...mov.prim, ...mov.sec].map(labelMusculo).join(' · ')),
+        filtroChips,
         h('div', { class: 'row' },
-          // En una máquina asistida, el mejor registro es el de MENOS ayuda.
-          dato(ej.tipo === 'asistido' ? 'Menos ayuda' : 'Máximo',
+          dato(asistido ? 'Menos ayuda' : 'Máximo',
             max ? `${fPeso(max.peso)} kg × ${max.reps} · ${fFecha(max.fecha)}` : '—'),
           dato('Último', ult ? `${fPeso(ult.peso)} kg × ${ult.reps} · ${hace(ult.fecha)}` : '—'),
         ),
 
-        faltanCarga > 0
-          ? vacio('Carga en el tiempo', `Faltan ${plural(faltanCarga, 'sesión', 'sesiones')} de ${ej.nombre} para ver este gráfico.`)
-          : tarjetaGrafico('Carga en el tiempo', 'Serie más pesada de cada sesión · la línea punteada marca un cambio de rutina',
+        faltan > 0
+          ? vacio('Carga en el tiempo', `Faltan ${plural(faltan, 'sesión', 'sesiones')} para ver este gráfico.`)
+          : tarjetaGrafico('Carga en el tiempo',
+              'Serie más pesada de cada sesión' + (mezcla ? ', en la escala de la variante de referencia' : '') +
+              ' · la línea punteada marca un cambio de plantilla',
               graficoLinea(porSesion.map(p => ({ x: p.x, y: p.top, rir: p.rir })), marcas)),
 
-        faltanCarga > 0
-          ? vacio('Volumen por sesión', `Faltan ${plural(faltanCarga, 'sesión', 'sesiones')} de ${ej.nombre} para ver este gráfico.`)
-          : tarjetaGrafico('Volumen por sesión', 'Peso × repeticiones acumulado, en kg',
+        faltan > 0
+          ? vacio('Volumen por sesión', `Faltan ${plural(faltan, 'sesión', 'sesiones')} para ver este gráfico.`)
+          : tarjetaGrafico('Volumen por sesión', 'Peso × repeticiones acumulado',
               graficoBarras(porSesion.map(p => ({ x: p.x, y: p.vol })))),
+
+        mezcla && h('span', { class: 'tiny', style: 'line-height:1.45' },
+          'Este movimiento tiene varias variantes. Para comparar, los pesos se llevan a una misma escala con el factor de cada una; ' +
+          'lo que se guardó siempre es el peso crudo que levantaste.'),
 
         h('span', { class: 'sec-title' }, 'Todo lo hecho'),
         hist.length === 0
-          ? h('div', { class: 'empty' }, 'Todavía no registraste ninguna serie de este ejercicio.')
+          ? h('div', { class: 'empty' }, 'Todavía no registraste ninguna serie.')
           : h('div', { class: 'stack tight' },
               [...porSesion].reverse().map(p => {
                 const dets = hist.filter(x => x.sesionId === p.sesionId);
-                return h('button', {
-                  class: 'listrow', onclick: () => ir({ n: 'sesion', id: p.sesionId }),
-                },
+                const v = variante(db, p.varianteId);
+                return h('button', { class: 'listrow', onclick: () => ir({ n: 'sesion', id: p.sesionId }) },
                   h('span', { class: 'txt' },
                     h('b', { class: 'num' }, fFechaLarga(p.x)),
-                    h('small', null, dets.map(x => `${fPeso(x.peso)}×${x.reps}`).join('  ·  ')),
+                    h('small', null,
+                      (usadas.length > 1 && v ? `${v.nombre} · ` : '') +
+                      dets.map(x => `${fPeso(x.peso)}×${x.reps}`).join('  ·  ')),
                   ),
                   chev(),
                 );

@@ -238,7 +238,7 @@ input,textarea{font-family:inherit;-webkit-tap-highlight-color:transparent}
 .empty{border:1px dashed var(--line);border-radius:var(--r);background:transparent;padding:28px 20px;text-align:center;color:var(--fg-2);font-size:14px;line-height:1.4}
 .bars{display:flex;flex-direction:column;gap:10px}
 .bar{display:flex;align-items:center;gap:10px}
-.bar .bl{width:82px;flex:none;font-size:13px;color:var(--fg-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar .bl{width:104px;flex:none;font-size:13px;color:var(--fg-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bar .bt{flex:1;height:22px;position:relative;background:var(--surf-2);border-radius:5px;overflow:hidden}
 .bar .bt .band{position:absolute;top:0;bottom:0;background:rgba(204,255,51,.045);border-left:1px dashed rgba(204,255,51,.45);border-right:1px dashed rgba(204,255,51,.45)}
 .bar .bt .fill{position:absolute;top:0;bottom:0;left:0;background:var(--acc);border-radius:5px}

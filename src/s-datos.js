@@ -40,7 +40,7 @@ function importar(db, file) {
     try { entrada = JSON.parse(String(fr.result)); }
     catch { toast('El archivo no es un JSON válido'); return; }
     const nuevo = entrada?.db ?? entrada;
-    if (!nuevo || !nuevo.rutina || !Array.isArray(nuevo.sesiones)) {
+    if (!nuevo || !(nuevo.plantillas || nuevo.rutina) || !Array.isArray(nuevo.sesiones)) {
       toast('Ese archivo no es un respaldo de Rutina');
       return;
     }

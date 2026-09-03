@@ -1,24 +1,25 @@
 // Motor de la sesión de entrenamiento.
 //
-// El plan se materializa al arrancar: cada serie de la rutina se convierte en un slot.
-// Así "volver atrás", "lo hecho" y el progreso son cuentas directas, y editar la rutina
-// a mitad de sesión no rompe nada de lo ya cargado.
+// El plan se materializa al arrancar: cada serie de la plantilla se convierte
+// en un slot. Así "volver atrás", "lo hecho" y el progreso son cuentas directas,
+// y editar la plantilla a mitad de sesión no rompe nada de lo ya cargado.
 
-import { uid, diaPorId, versionActual, precarga } from './data.js';
+import { uid, plantillaPorId, versionActual, precarga, referenciaHermana, variante } from './data.js';
 
 const UNDO_MAX = 10;
 /** Una sesión sin tocar durante este tiempo se considera abandonada y la app pregunta. */
 export const ABANDONO_MS = 6 * 3600e3;
 
-export function iniciarSesion(db, diaId) {
-  const dia = diaPorId(db, diaId);
-  const ver = versionActual(dia);
+export function iniciarSesion(db, plantillaId) {
+  const pl = plantillaPorId(db, plantillaId);
+  const ver = versionActual(pl);
   const sets = [];
   ver.items.forEach((item, exIdx) => {
     for (let i = 0; i < item.series; i++) {
       sets.push({
         id: uid(),
         ejercicioId: item.ejercicioId,
+        varianteId: item.varianteId,
         exIdx,
         serieIdx: i,
         series: item.series,
@@ -34,8 +35,8 @@ export function iniciarSesion(db, diaId) {
   });
   const ses = {
     id: uid(),
-    diaId,
-    diaNombre: dia.nombre,
+    plantillaId,
+    plantillaNombre: pl.nombre,
     versionN: ver.n,
     inicio: Date.now(),
     tocada: Date.now(),
@@ -51,6 +52,36 @@ export function iniciarSesion(db, diaId) {
   return ses;
 }
 
+/** Sesión vacía, para armar el entrenamiento sobre la marcha. */
+export function iniciarSesionLibre(db, nombre = 'Suelto') {
+  const ses = {
+    id: uid(), plantillaId: null, plantillaNombre: nombre, versionN: null,
+    inicio: Date.now(), tocada: Date.now(), fin: null,
+    sets: [], cursor: null, undo: [], rest: null, draft: null,
+  };
+  db.sesionAbierta = ses;
+  return ses;
+}
+
+/** Suma un ejercicio a la sesión en curso, al final. */
+export function agregarEjercicio(db, ses, { ejercicioId, varianteId, series = 3, repsMin = 8, repsMax = 12, rirMin = 1, rirMax = 2, descanso = 90 }) {
+  fotoUndo(ses, `agregar ${db.ejercicios[ejercicioId]?.nombre ?? 'ejercicio'}`);
+  const exIdx = ses.sets.length ? Math.max(...ses.sets.map(s => s.exIdx)) + 1 : 0;
+  const nuevos = [];
+  for (let i = 0; i < series; i++) {
+    nuevos.push({
+      id: uid(), ejercicioId, varianteId, exIdx, serieIdx: i, series,
+      repsMin, repsMax, rirMin, rirMax, descanso,
+      estado: 'pendiente', peso: null, reps: null, rir: null, ts: null,
+    });
+  }
+  ses.sets.push(...nuevos);
+  if (!ses.cursor) ses.cursor = nuevos[0].id;
+  ses.tocada = Date.now();
+  recalcularDraft(db, ses);
+  return nuevos[0];
+}
+
 export function setPorId(ses, id) { return ses.sets.find(s => s.id === id); }
 export function setActual(ses) { return setPorId(ses, ses.cursor) || ses.sets[0]; }
 export function indiceActual(ses) { return ses.sets.findIndex(s => s.id === ses.cursor); }
@@ -63,7 +94,7 @@ export function porEjercicio(ses) {
   const grupos = [];
   for (const s of ses.sets) {
     let g = grupos.find(x => x.exIdx === s.exIdx);
-    if (!g) { g = { exIdx: s.exIdx, ejercicioId: s.ejercicioId, sets: [] }; grupos.push(g); }
+    if (!g) { g = { exIdx: s.exIdx, ejercicioId: s.ejercicioId, varianteId: s.varianteId, sets: [] }; grupos.push(g); }
     g.sets.push(s);
   }
   return grupos.sort((a, b) => a.exIdx - b.exIdx);
@@ -71,27 +102,26 @@ export function porEjercicio(ses) {
 
 export function totalEjercicios(ses) { return porEjercicio(ses).length; }
 
-/** El valor que arranca en pantalla para el slot bajo el cursor. */
+/**
+ * El valor que arranca en pantalla. Prioridad, de lo más específico a lo más
+ * general: la misma serie ya cargada hoy, la serie anterior de hoy, la misma
+ * serie de la última vez CON ESTA VARIANTE, el último peso que pusiste en ella,
+ * y recién ahí cero. Nunca se convierte el peso de otra variante.
+ */
 export function recalcularDraft(db, ses) {
   const s = setActual(ses);
   if (!s) { ses.draft = null; return; }
   if (s.estado === 'hecha') {
-    ses.draft = { setId: s.id, peso: s.peso, reps: s.reps, rir: s.rir, previo: null };
+    ses.draft = { setId: s.id, peso: s.peso, reps: s.reps, rir: s.rir, origen: null, hermana: null };
     return;
   }
-  // Primero, lo que ya se cargó en esta misma sesión para este ejercicio.
   const enSesion = ses.sets
-    .filter(x => x.ejercicioId === s.ejercicioId && x.estado === 'hecha')
+    .filter(x => x.varianteId === s.varianteId && x.estado === 'hecha')
     .sort((a, b) => a.serieIdx - b.serieIdx);
-  const mismaSerie = enSesion.find(x => x.serieIdx === s.serieIdx);
-  const base = mismaSerie || enSesion[enSesion.length - 1] || null;
+  const base = enSesion.find(x => x.serieIdx === s.serieIdx) || enSesion[enSesion.length - 1] || null;
 
-  // Prioridad de la precarga, de lo más específico a lo más general:
-  //   1. la misma serie ya cargada hoy    2. la serie anterior de hoy
-  //   3. la misma serie de la última vez  4. el último peso que pusiste, aunque
-  //      no hayas completado la serie     5. cero
-  const prev = precarga(db, s.ejercicioId, s.serieIdx);
-  const memoria = db.ejercicios[s.ejercicioId]?.ultimo || null;
+  const prev = precarga(db, s.varianteId, s.serieIdx);
+  const memoria = variante(db, s.varianteId)?.ultimo || null;
   const origen =
     base ? { tipo: 'sesion', serieIdx: base.serieIdx, peso: base.peso, reps: base.reps }
     : prev ? { tipo: 'historial', peso: prev.peso, reps: prev.reps }
@@ -103,31 +133,41 @@ export function recalcularDraft(db, ses) {
     peso: origen ? origen.peso : 0,
     reps: origen ? origen.reps : s.repsMin,
     rir: null,
-    previo: prev,
     origen,
+    // Si nunca hiciste esta variante, se muestra qué venías haciendo en otra
+    // del mismo movimiento. Como referencia, sin convertir el número.
+    hermana: origen ? null : referenciaHermana(db, s.ejercicioId, s.varianteId),
   };
-}
-
-/**
- * Recuerda en el catálogo lo último que pusiste para este ejercicio, se haya
- * completado la serie o no. Es lo que evita empezar de cero cuando salteás,
- * abandonás la sesión, o es la primera vez que lo hacés.
- */
-export function recordarCarga(db, ejercicioId, peso, reps) {
-  const e = db.ejercicios[ejercicioId];
-  if (!e) return;
-  e.ultimo = { peso, reps, ts: Date.now() };
 }
 
 export function ajustarDraft(ses, campo, delta, paso) {
   const d = ses.draft;
   if (!d) return;
-  if (campo === 'peso') {
-    d.peso = Math.max(0, Math.round((d.peso + delta * paso) * 2) / 2);
-  } else if (campo === 'reps') {
-    d.reps = Math.max(0, Math.min(100, d.reps + delta));
+  if (campo === 'peso') d.peso = Math.max(0, Math.round((d.peso + delta * paso) * 2) / 2);
+  else if (campo === 'reps') d.reps = Math.max(0, Math.min(100, d.reps + delta));
+  ses.tocada = Date.now();
+}
+
+/**
+ * Recuerda en la variante lo último que pusiste, se haya completado la serie o
+ * no. Evita empezar de cero cuando salteás o abandonás la sesión.
+ */
+export function recordarCarga(db, varianteId, peso, reps) {
+  const v = db.variantes[varianteId];
+  if (!v) return;
+  v.ultimo = { peso, reps, ts: Date.now() };
+}
+
+/** Sustituye la variante de todas las series pendientes de un ejercicio. */
+export function cambiarVariante(db, ses, exIdx, varianteId) {
+  const v = db.variantes[varianteId];
+  if (!v) return;
+  fotoUndo(ses, `cambiar a ${v.nombre}`);
+  for (const s of ses.sets) {
+    if (s.exIdx === exIdx && s.estado !== 'hecha') s.varianteId = varianteId;
   }
   ses.tocada = Date.now();
+  recalcularDraft(db, ses);
 }
 
 // ---------- deshacer ----------
@@ -172,7 +212,7 @@ export function completarSerie(db, ses, nombreEj) {
   s.rir = d.rir;
   s.ts = Date.now();
   ses.tocada = Date.now();
-  recordarCarga(db, s.ejercicioId, d.peso, d.reps);
+  recordarCarga(db, s.varianteId, d.peso, d.reps);
 
   const siguiente = proximoPendiente(ses, s.id);
   if (siguiente) ses.cursor = siguiente.id;

@@ -1,0 +1,22 @@
+# El plan gratuito de Supabase pausa el proyecto tras 7 días sin actividad, y
+# cuando pasa la app deja de poder subir en silencio. Un pedido cada tres días
+# alcanza para que cuente como actividad. La clave anon es pública por diseño.
+name: Mantener Supabase despierto
+
+on:
+  schedule:
+    - cron: '17 9 */3 * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pedido mínimo a la Data API
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlhcnl1bGZjb2lzdmt5dGZidWhrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg0NjUwNTAsImV4cCI6MjEwNDA0MTA1MH0.YoBlJHJyFZuU8cpZXs7kwqMyALBT2VXsoHfS2Yg8gr0" \
+            "https://iaryulfcoisvkytfbuhk.supabase.co/rest/v1/movimientos?select=id&limit=1")
+          echo "HTTP $code"
+          # 200 con sesión, 401/403 sin ella: cualquiera de los tres es actividad.
+          case "$code" in 200|401|403) exit 0;; *) exit 1;; esac

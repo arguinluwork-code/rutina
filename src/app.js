@@ -246,6 +246,28 @@ async function migrar(db) {
   }
   if (sumados) S.avisoCatalogo = sumados;
 
+  // v10: ajuste de fábrica a las plantillas, para que la semana canónica
+  // (Empuje + Tirón + Brazos + Piernas) cierre exacta. Solo entra en las
+  // plantillas que siguen tal cual salieron de fábrica; si la editaste, es
+  // tuya. Y entra como versión NUEVA, no como reemplazo: la anterior queda y
+  // se puede volver desde Versiones.
+  if (desde < 10) {
+    let ajustadas = 0;
+    for (const fab of base.plantillas) {
+      const mia = db.plantillas.find(p => p.id === fab.id);
+      if (!mia) continue;
+      const intacta = mia.versiones.length === 1 && mia.versiones[0].nota === 'Plantilla inicial';
+      const distinta = JSON.stringify(mia.versiones[0].items) !== JSON.stringify(fab.versiones[0].items);
+      if (!intacta || !distinta) continue;
+      const n = Math.max(...mia.versiones.map(v => v.n)) + 1;
+      mia.versiones.push({ n, ts: Date.now(), nota: 'Ajuste de fábrica: la semana de 4 cierra exacta', items: fab.versiones[0].items });
+      mia.versionActual = n;
+      mia.foco = fab.foco;
+      ajustadas++;
+    }
+    if (ajustadas) S.avisoPlantillas = ajustadas;
+  }
+
   db.v = VERSION_DATOS;
   guardar(db);
   return db;
@@ -278,6 +300,9 @@ async function arrancar() {
   if (S.avisoModelo) {
     S.avisoModelo = false;
     toast('Tus días pasaron a ser plantillas y se conservó todo el historial');
+  } else if (S.avisoPlantillas) {
+    S.avisoPlantillas = 0;
+    toast('Plantillas ajustadas. La versión anterior sigue en Versiones.');
   } else if (S.avisoCatalogo) {
     const n = S.avisoCatalogo;
     S.avisoCatalogo = 0;

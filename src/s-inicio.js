@@ -120,6 +120,7 @@ function bloqueElegir(db) {
         sug.map(x => {
           const sel = S.plSel === x.id;
           const esperar = x.estado === 'esperar';
+          const pasa = x.estado === 'pasa';
           return h('button', {
             class: 'listrow', style: 'min-height:60px;padding:10px 14px;' +
               (sel ? 'border-color:var(--fg);background:var(--surf-2)' : 'background:transparent'),
@@ -130,6 +131,7 @@ function bloqueElegir(db) {
                 x.nombre,
                 x.estado === 'mejor' ? h('span', { class: 'badge on', style: 'margin-left:8px' }, 'La que más suma') : null,
                 esperar ? h('span', { class: 'badge', style: 'margin-left:8px;color:var(--warn);border-color:var(--warn)' }, 'Mejor esperar') : null,
+                pasa ? h('span', { class: 'badge', style: 'margin-left:8px' }, 'Se pasa') : null,
               ),
               h('small', { style: esperar ? 'color:var(--warn)' : '' },
                 `${seriesDePlantilla(db, x.id)} series · ${x.motivo}`),

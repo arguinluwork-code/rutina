@@ -91,6 +91,24 @@ ni librerías. Es lo que hace que ande sin conexión de verdad.
   muestra "Menos ayuda" en vez de "Máximo". Mostrar el máximo ahí sería decir
   exactamente lo contrario de lo que pasó.
 
+## La semana canónica
+
+Las cuatro plantillas **Empuje + Tirón + Brazos + Piernas y core** están
+calibradas para que, hechas una vez cada una, los 16 músculos caigan dentro de
+su objetivo semanal: ni cortos ni pasados. Es una semana cerrada, verificada
+por cálculo y no por intuición.
+
+**Hombros** y **Torso completo** son sustitutos declarados, no parte de la
+canónica: Hombros para cambiar Brazos cuando querés más deltoides, Torso para
+las semanas de tres días. Usarlos mueve los totales, y el sugeridor de Inicio
+lo muestra: marca "La que más suma", "Mejor esperar" cuando un músculo todavía
+se recupera, y "Se pasa" cuando una plantilla mandaría más series de sobra que
+de déficit cubierto.
+
+No puede ser "cualquier 4 de 6": con seis bloques fijos hay 15 combinaciones y
+es imposible que las 15 sumas caigan en la ventana de los 16 músculos. Lo que
+sí se puede es una semana de 4 que cierre exacta, y guiar hacia completarla.
+
 ## Migración de datos
 
 `VERSION_DATOS` en `src/data.js` marca el formato. Al abrir, si la base guardada

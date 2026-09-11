@@ -39,8 +39,8 @@ export const MUSCULOS = [
     nota: 'Ancho de espalda. Jalones y remos.' },
   { id: 'espalda-alta', label: 'Espalda alta', prioridad: 2, objMin: 7, objMax: 10, recuperacion: 60,
     nota: 'Trapecio medio y romboides: espesor y postura.' },
-  { id: 'hombro-anterior', label: 'Hombro anterior', prioridad: 2, objMin: 6, objMax: 10, recuperacion: 60,
-    nota: 'Deliberadamente bajo. Recibe indirecto de cada press; sumarle trabajo directo le roba lugar al lateral y al posterior, que son los que faltan.' },
+  { id: 'hombro-anterior', label: 'Hombro anterior', prioridad: 2, objMin: 4, objMax: 10, recuperacion: 60,
+    nota: 'Deliberadamente bajo, y el piso es lo que te dan los press solos. Sumarle trabajo directo le roba lugar al lateral y al posterior, que son los que faltan.' },
 
   { id: 'cuadriceps', label: 'Cuádriceps', prioridad: 3, objMin: 6, objMax: 10, recuperacion: 72,
     nota: 'Mantenimiento con margen. 6 series semanales alcanzan para no perder masa.' },

@@ -17,7 +17,7 @@
 import { MUSCULOS, musculo, labelMusculo, UMBRAL_ESTIMULO } from './musculos.js';
 export { MUSCULOS, musculo, labelMusculo, UMBRAL_ESTIMULO };
 
-export const VERSION_DATOS = 9;
+export const VERSION_DATOS = 10;
 
 /** Salto de carga por tap. Editable por variante. */
 export const PASO = 2.5;
@@ -316,13 +316,13 @@ function plantillasIniciales(ts) {
       it('ex_elevacion_lateral', 'v_lateral_mancuernas', 3, 12, 20, 0, 1, 90),
       it('ex_face_pull', 'v_facepull_polea', 3, 12, 20, 0, 1, 90),
     ]),
-    p('pl_brazos', 'Brazos', 'La prioridad de la rutina', [
+    p('pl_brazos', 'Brazos', 'Bíceps, tríceps y posterior', [
       it('ex_curl_inclinado', 'v_curlinc_mancuernas', 4, 8, 15, 0, 1, 90),
       it('ex_triceps_overhead', 'v_overhead_soga', 4, 8, 15, 0, 1, 90),
       it('ex_curl_predicador', 'v_predicador_maquina', 4, 8, 15, 0, 1, 90),
       it('ex_pushdown', 'v_pushdown_barra', 4, 8, 15, 0, 1, 90),
       it('ex_elevacion_lateral', 'v_lateral_polea', 3, 12, 20, 0, 1, 90),
-      it('ex_curl_martillo', 'v_martillo_mancuernas', 3, 8, 15, 0, 1, 90),
+      it('ex_posterior', 'v_posterior_maquina', 3, 12, 20, 0, 1, 90),
     ]),
     p('pl_hombros', 'Hombros', 'Lateral y posterior', [
       it('ex_elevacion_lateral', 'v_lateral_maquina', 6, 12, 20, 0, 1, 90),
@@ -358,6 +358,7 @@ export function catalogoBase() {
   return {
     ejercicios: JSON.parse(JSON.stringify(MOVIMIENTOS)),
     variantes: JSON.parse(JSON.stringify(VARIANTES)),
+    plantillas: plantillasIniciales(Date.now()),
   };
 }
 
@@ -681,6 +682,25 @@ function castigoRecuperacion(db, plantillaId, ref) {
 }
 
 /**
+ * Cuánto se pasaría cada músculo de su máximo semanal si hicieras esta
+ * plantilla hoy. Es lo que faltaba: cubrir el déficit no sirve si a cambio te
+ * mandás 6 series de más en algo que ya estaba completo.
+ */
+export function exceso(db, plantillaId, ref = Date.now()) {
+  const estado = estadoSemanal(db, ref);
+  const aporte = aporteDePlantilla(db, plantillaId);
+  let total = 0;
+  const cuales = [];
+  for (const m of estado) {
+    if (!m.objMax) continue;
+    const sobra = m.hecho + (aporte[m.id] || 0) - m.objMax;
+    if (sobra > 0) { total += sobra; cuales.push({ musculo: m, sobra: Math.round(sobra * 2) / 2 }); }
+  }
+  cuales.sort((a, b) => b.sobra - a.sobra);
+  return { total: Math.round(total * 10) / 10, cuales };
+}
+
+/**
  * Ordena las plantillas por lo que suman hoy: cuánto déficit de la semana
  * cubren, menos lo que cuesta pegarle a algo que todavía se está recuperando.
  *
@@ -691,28 +711,40 @@ export function sugerencias(db, ref = Date.now()) {
   const lista = db.plantillas.map(p => {
     const cob = cobertura(db, p.id, ref);
     const { castigo, cuales } = castigoRecuperacion(db, p.id, ref);
+    const ex = exceso(db, p.id, ref);
     return {
       id: p.id,
       nombre: p.nombre,
       cubre: cob.cubre,
       deficit: cob.deficit,
       castigo: Math.round(castigo * 10) / 10,
-      puntaje: cob.cubre - castigo,
+      // Pasarse pesa la mitad que pegarle a algo cansado: es volumen que no
+      // suma, no volumen que lastima.
+      exceso: ex.total,
+      sePasaEn: ex.cuales,
+      puntaje: cob.cubre - castigo - ex.total * 0.5,
       enRecuperacion: cuales,
     };
   });
   lista.sort((a, b) => b.puntaje - a.puntaje);
 
   for (const x of lista) {
-    // Esperar solo cuando el costo de recuperación se come lo que aporta.
-    x.estado = (x.castigo >= x.cubre && x.enRecuperacion.length) ? 'esperar'
-      : (x === lista[0] && x.cubre > 0 ? 'mejor' : 'ok');
     const r = x.enRecuperacion[0];
-    x.motivo = x.estado === 'esperar'
-      ? `${r.musculo.label} recupera en ${r.faltan} h`
-      : x.cubre > 0
-        ? `cubre ${x.cubre} de ${x.deficit} que faltan`
+    const p = x.sePasaEn[0];
+    // Esperar cuando el costo de recuperación se come lo que aporta; "se pasa"
+    // cuando manda más de una serie de sobra que de déficit cubierto.
+    if (x.castigo >= x.cubre && x.enRecuperacion.length) {
+      x.estado = 'esperar';
+      x.motivo = `${r.musculo.label} recupera en ${r.faltan} h`;
+    } else if (x.exceso >= 4 && x.exceso > x.cubre * 0.5) {
+      x.estado = 'pasa';
+      x.motivo = `se pasa ${p.sobra} en ${p.musculo.label}` + (x.cubre ? ` · cubre ${x.cubre}` : '');
+    } else {
+      x.estado = (x === lista[0] && x.cubre > 0) ? 'mejor' : 'ok';
+      x.motivo = x.cubre > 0
+        ? `cubre ${x.cubre} de ${x.deficit} que faltan` + (x.exceso ? ` · sobra ${x.exceso}` : '')
         : 'la semana ya está cubierta';
+    }
   }
   return lista;
 }

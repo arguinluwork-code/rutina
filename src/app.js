@@ -255,10 +255,11 @@ async function migrar(db) {
   // Igual que en v10, nada se pisa: la plantilla que editaste es tuya y solo
   // recibe la etiqueta de rol. Las de fábrica reciben una VERSIÓN nueva, así
   // que la anterior queda y se puede volver desde Versiones.
-  if (desde < 11) {
+  if (desde < 12) {
     const NOTAS_FABRICA = [
       'Plantilla inicial',
       'Ajuste de fábrica: la semana de 4 cierra exacta',
+      'Rediseño por roles: las 16 semanas cierran',
     ];
     const deFabrica = (pl) => pl.versiones.every(v => NOTAS_FABRICA.includes(v.nota));
 
@@ -267,24 +268,24 @@ async function migrar(db) {
       const mia = db.plantillas.find(p => p.id === fab.id);
       if (!mia) { db.plantillas.push(fab); nuevas++; continue; }
       mia.rol = fab.rol;
+      mia.condicional = fab.condicional;
       if (!deFabrica(mia)) continue;
       const items = fab.versiones[0].items;
       if (JSON.stringify(versionActual(mia).items) === JSON.stringify(items)) continue;
       const n = Math.max(...mia.versiones.map(v => v.n)) + 1;
-      mia.versiones.push({ n, ts: Date.now(), nota: 'Rediseño por roles: las 16 semanas cierran', items });
+      mia.versiones.push({ n, ts: Date.now(), nota: 'Piernas pasa a ser el 5º día: 20 series más arriba', items });
       mia.versionActual = n;
       mia.nombre = fab.nombre;
       mia.foco = fab.foco;
       ajustadas++;
     }
 
-    // Hombros y Torso completo salen: eran justamente los que rompían la
-    // cuenta. Torso duplicaba entero el pecho de Empuje y la espalda de Tirón,
-    // y aparecía en ocho de las nueve semanas de tres días que se pasaban de
-    // algún techo. Solo se retiran si nunca las tocaste; si las editaste son
-    // tuyas y quedan. El historial no depende de esto: cada sesión guarda el
-    // nombre de la plantilla con la que la hiciste.
-    for (const id of ['pl_hombros', 'pl_torso']) {
+    // Torso completo sale: duplicaba entero el pecho de Empuje y la espalda de
+    // Tirón, y aparecía en ocho de las nueve semanas de tres días que se
+    // pasaban de algún techo. Solo se retira si nunca la tocaste; si la
+    // editaste es tuya y queda. El historial no depende de esto: cada sesión
+    // guarda el nombre de la plantilla con la que la hiciste.
+    for (const id of ['pl_torso']) {
       const i = db.plantillas.findIndex(p => p.id === id);
       if (i < 0) continue;
       if (!deFabrica(db.plantillas[i])) continue;

@@ -23,7 +23,7 @@ export {
   CURVA, ZONAS, zonaVolumen, fraccionCubierta, rendimientoMarginal,
 };
 
-export const VERSION_DATOS = 11;
+export const VERSION_DATOS = 12;
 
 /** Salto de carga por tap. Editable por variante. */
 export const PASO = 2.5;
@@ -280,36 +280,40 @@ function it(ejercicioId, varianteId, series, repsMin, repsMax, rirMin, rirMax, d
 }
 
 /**
- * Cuatro ROLES: empuje, tirón, brazos, piernas. Una semana es uno de cada uno.
- * Cada rol tiene además un HERMANO con el mismo perfil muscular y distintos
- * ejercicios, así que elegir hermano cambia qué hacés, nunca cuánto recibe cada
- * músculo.
+ * Cinco ROLES. Cuatro son la semana: empuje, tirón, brazos, hombros. El quinto,
+ * piernas, es CONDICIONAL: se hace si hay un quinto día, no ocupa uno de los
+ * cuatro. Cada rol tiene además un HERMANO con el mismo perfil muscular y
+ * distintos ejercicios, así que elegir hermano cambia qué hacés, nunca cuánto
+ * recibe cada músculo.
  *
- * Por qué roles y no bloques sueltos: con seis bloques de los que elegís cuatro
- * cualquiera hay quince sumas distintas, y no existen números que hagan caer las
- * quince dentro de la ventana de los dieciséis músculos. Se verificó: cerraba
- * una de quince, y nueve de las veinte semanas de tres días se pasaban de algún
- * techo. Con roles hay una sola suma que cuadrar.
+ * Sacar las piernas de los cuatro días libera casi veinte series. Con piernas
+ * adentro, pecho 8, dorsal 9 y posterior 9 quedaban todos apoyados en el piso
+ * de su rango, o sea a la izquierda de la zona óptima de la curva. Ahora los
+ * tres entran en el óptimo (12, 13 y 13) y las tres prioridades suben a 19, sin
+ * que nada toque un techo.
  *
- * Regla de armado, la que rompía la versión anterior: NINGÚN bloque llega solo
- * al techo semanal de ningún músculo. El Empuje viejo entregaba pecho 12, que
- * es el máximo entero de la semana en una sentada: tocabas ese bloque y el
- * pecho ya no admitía nada más, ni los fondos de una sesión suelta. Ahora
- * entrega 8, y el bloque más cargado de la rutina queda en 8 de 12.
+ * Por qué roles y no bloques sueltos: con bloques de los que elegís cuatro
+ * cualquiera hay quince sumas distintas, y no existen números que hagan caer
+ * las quince dentro de la ventana de los dieciséis músculos. Se verificó:
+ * cerraba una de quince. Con roles hay una sola suma que cuadrar.
  *
- * El lateral aparece en los cuatro bloques (5+3+6+3). Es el de mayor retorno y
- * el único que no recibe nada indirecto: los press le pegan al anterior. Si se
- * concentra en un bloque, saltear ese bloque lo hunde.
+ * Regla de armado: NINGÚN bloque llega solo al techo semanal de ningún músculo.
+ * El Empuje de la versión de seis bloques entregaba pecho 12 sobre un techo de
+ * 12: tocabas ese bloque y el pecho ya no admitía nada más, ni los fondos de
+ * una sesión suelta. Acá el más cargado queda bien por debajo.
  *
- * Pecho 8 y dorsal 9 quedan en el piso a propósito. Con 87 series de
- * presupuesto y los brazos como prioridad, subirlos sale de los bíceps.
+ * El lateral se reparte entre los cuatro (5+6+8 y lo que aportan los press). Es
+ * el de mayor retorno y el único que no recibe nada indirecto: los press le
+ * pegan al anterior. Concentrarlo en un bloque hacía que saltear ese bloque lo
+ * hundiera.
  *
- * El hombro anterior recibe 4, que es exactamente lo que dan los dos press
- * solos. Cero trabajo directo: sumarle le roba lugar al lateral y al posterior.
+ * El hombro anterior recibe 8 sin una sola serie directa que lo busque: es todo
+ * lo que sobra de los press. Perseguirlo le robaría lugar al lateral y al
+ * posterior, que son los que faltan.
  *
- * Con tres días el que se saltea es PIERNAS: verificado que los ocho músculos
- * del tren superior siguen en rango y ninguno se pasa. Saltear Brazos deja
- * bíceps en 9 de 16.
+ * El bloque de piernas ya no lleva elevación lateral. La llevaba cuando era uno
+ * de los cuatro y hacía falta para no perder lateral esa semana; como quinto
+ * condicional, sumarla pasaría el techo de 20.
  *
  * Los rangos de repeticiones NO son una afirmación sobre crecimiento: con el
  * esfuerzo igualado, de 5 a 30 repeticiones da prácticamente lo mismo. Son una
@@ -325,44 +329,42 @@ function it(ejercicioId, varianteId, series, repsMin, repsMax, rirMin, rirMax, d
  * recortarlos.
  */
 function plantillasIniciales(ts) {
-  const p = (id, rol, nombre, foco, items) => ({
-    id, rol, nombre, foco, versionActual: 1,
+  const p = (id, rol, nombre, foco, items, condicional = false) => ({
+    id, rol, nombre, foco, condicional, versionActual: 1,
     versiones: [{ n: 1, ts, nota: 'Plantilla inicial', items }],
   });
   return [
-    // --- empuje: pecho 8, tríceps 8, anterior 4, lateral 5, posterior 4
-    p('pl_empuje', 'empuje', 'Empuje', 'Pecho, tríceps y hombro', [
+    // --- empuje: pecho 8, tríceps 9, anterior 4, lateral 5, posterior 4
+    p('pl_empuje', 'empuje', 'Empuje', 'Pecho y tríceps', [
       it('ex_press_banca', 'v_banca_barra', 4, 5, 10, 2, 2, 150),
       it('ex_press_inclinado', 'v_inclinado_maquina', 4, 8, 12, 1, 2, 120),
+      it('ex_triceps_overhead', 'v_overhead_soga', 5, 8, 15, 0, 1, 90),
       it('ex_elevacion_lateral', 'v_lateral_polea', 5, 12, 20, 0, 1, 90),
-      it('ex_triceps_overhead', 'v_overhead_soga', 4, 8, 15, 0, 1, 90),
       it('ex_face_pull', 'v_facepull_polea', 4, 12, 20, 0, 1, 90),
     ]),
     p('pl_empuje_b', 'empuje', 'Empuje · mancuernas', 'El mismo reparto, sin barra', [
       it('ex_press_banca', 'v_banca_mancuernas', 4, 8, 12, 1, 2, 150),
       it('ex_pec_deck', 'v_pecdeck_maquina', 4, 8, 15, 0, 1, 90),
       it('ex_press_hombro', 'v_presshombro_mancuernas', 3, 8, 12, 1, 2, 120),
-      it('ex_elevacion_lateral', 'v_lateral_maquina', 4, 12, 20, 0, 1, 90),
-      it('ex_pushdown', 'v_pushdown_barra', 4, 8, 15, 0, 1, 90),
-      it('ex_face_pull', 'v_facepull_polea', 3, 12, 20, 0, 1, 90),
+      it('ex_triceps_overhead', 'v_overhead_acostado', 4, 8, 15, 0, 1, 90),
+      it('ex_elevacion_lateral', 'v_lateral_mancuernas', 4, 12, 20, 0, 1, 90),
+      it('ex_posterior', 'v_posterior_maquina', 3, 12, 20, 0, 1, 90),
     ]),
 
-    // --- tirón: dorsal 9, espalda alta 7.5, bíceps 9, posterior 5, lateral 3
+    // --- tirón: dorsal 9, espalda alta 8, bíceps 9, posterior 6
     p('pl_tiron', 'tiron', 'Tirón', 'Espalda y bíceps', [
       it('ex_jalon', 'v_jalon_neutro', 4, 8, 12, 1, 2, 120),
       it('ex_remo_apoyo', 'v_remo_t', 4, 8, 12, 1, 2, 120),
       it('ex_curl_inclinado', 'v_curlinc_mancuernas', 5, 8, 15, 0, 1, 90),
       it('ex_pullover', 'v_pullover_polea', 3, 8, 15, 0, 1, 90),
-      it('ex_posterior', 'v_posterior_maquina', 3, 12, 20, 0, 1, 90),
-      it('ex_elevacion_lateral', 'v_lateral_mancuernas', 3, 12, 20, 0, 1, 90),
+      it('ex_posterior', 'v_posterior_maquina', 4, 12, 20, 0, 1, 90),
     ]),
     p('pl_tiron_b', 'tiron', 'Tirón · unilateral', 'El mismo reparto, un lado por vez', [
       it('ex_remo_apoyo', 'v_remo_polea', 4, 8, 12, 1, 2, 120),
       it('ex_jalon_unilateral', 'v_jalonuni_polea', 4, 8, 12, 1, 2, 120),
-      it('ex_jalon', 'v_jalon_prono', 3, 8, 12, 1, 2, 120),
+      it('ex_pullover', 'v_pullover_polea', 3, 8, 15, 0, 1, 90),
       it('ex_curl_predicador', 'v_predicador_maquina', 5, 8, 15, 0, 1, 90),
-      it('ex_face_pull', 'v_facepull_polea', 3, 12, 20, 0, 1, 90),
-      it('ex_elevacion_lateral', 'v_lateral_polea', 3, 12, 20, 0, 1, 90),
+      it('ex_face_pull', 'v_facepull_polea', 4, 12, 20, 0, 1, 90),
     ]),
 
     // --- brazos: bíceps 8, tríceps 8, lateral 6
@@ -377,27 +379,43 @@ function plantillasIniciales(ts) {
       it('ex_curl_inclinado', 'v_curlinc_mancuernas', 4, 8, 15, 0, 1, 90),
       it('ex_pushdown', 'v_pushdown_barra', 4, 8, 15, 0, 1, 90),
       it('ex_curl_martillo', 'v_martillo_soga', 4, 8, 15, 0, 1, 90),
-      it('ex_triceps_overhead', 'v_overhead_acostado', 4, 8, 15, 0, 1, 90),
+      it('ex_triceps_overhead', 'v_overhead_unilateral', 4, 8, 15, 0, 1, 90),
       it('ex_elevacion_lateral', 'v_lateral_maquina', 6, 12, 20, 0, 1, 90),
     ]),
 
-    // --- piernas: cuádriceps 8, isquios 6, gemelos 4, glúteo 4, abdomen 3, lateral 3
-    p('pl_piernas', 'piernas', 'Piernas y core', 'Mantenimiento, con algo de hombro', [
+    // --- hombros: lateral 8, posterior 3, y el relleno de pecho y espalda que
+    //     hace falta para que los dos entren en el óptimo sin concentrarlos.
+    p('pl_hombros', 'hombros', 'Hombros', 'Lateral y posterior, con el resto de pecho y espalda', [
+      it('ex_elevacion_lateral', 'v_lateral_maquina', 6, 12, 20, 0, 1, 90),
+      it('ex_press_hombro', 'v_presshombro_mancuernas', 4, 8, 12, 1, 2, 120),
+      it('ex_pec_deck', 'v_pecdeck_maquina', 4, 8, 15, 0, 1, 90),
+      it('ex_jalon_unilateral', 'v_jalonuni_polea', 4, 8, 12, 1, 2, 120),
+      it('ex_posterior', 'v_posterior_maquina', 3, 12, 20, 0, 1, 90),
+    ]),
+    p('pl_hombros_b', 'hombros', 'Hombros · polea', 'El mismo reparto, otro material', [
+      it('ex_elevacion_lateral', 'v_lateral_polea', 6, 12, 20, 0, 1, 90),
+      it('ex_press_hombro', 'v_presshombro_maquina', 4, 8, 12, 1, 2, 120),
+      it('ex_pec_deck', 'v_pecdeck_polea', 4, 8, 15, 0, 1, 90),
+      it('ex_pullover', 'v_pullover_maquina', 4, 8, 15, 0, 1, 90),
+      it('ex_face_pull', 'v_facepull_polea', 3, 12, 20, 0, 1, 90),
+    ]),
+
+    // --- piernas: el quinto día. No lleva lateral: como condicional, sumarla
+    //     pasaría el techo de 20 las semanas que sí lo hacés.
+    p('pl_piernas', 'piernas', 'Piernas y core', 'El quinto día, si aparece', [
       it('ex_prensa', 'v_prensa_45', 4, 8, 12, 1, 2, 150),
       it('ex_hack', 'v_hack_maquina', 4, 8, 12, 1, 2, 120),
       it('ex_curl_femoral', 'v_femoral_sentado', 4, 8, 15, 0, 1, 90),
       it('ex_gemelos', 'v_gemelos_maquina', 4, 12, 20, 0, 1, 90),
-      it('ex_abdomen', 'v_abdomen_polea', 3, 12, 20, 0, 1, 90),
-      it('ex_elevacion_lateral', 'v_lateral_polea', 3, 12, 20, 0, 1, 90),
-    ]),
+      it('ex_abdomen', 'v_abdomen_polea', 4, 12, 20, 0, 1, 90),
+    ], true),
     p('pl_piernas_b', 'piernas', 'Piernas · unilateral', 'El mismo reparto, un lado por vez', [
       it('ex_prensa', 'v_prensa_45', 4, 8, 12, 1, 2, 150),
       it('ex_hack', 'v_hack_unilateral', 4, 8, 12, 1, 2, 120),
       it('ex_curl_femoral', 'v_femoral_acostado', 4, 8, 15, 0, 1, 90),
       it('ex_gemelos', 'v_gemelos_sentado', 4, 12, 20, 0, 1, 90),
-      it('ex_abdomen', 'v_abdomen_polea', 3, 12, 20, 0, 1, 90),
-      it('ex_elevacion_lateral', 'v_lateral_mancuernas', 3, 12, 20, 0, 1, 90),
-    ]),
+      it('ex_abdomen', 'v_abdomen_polea', 4, 12, 20, 0, 1, 90),
+    ], true),
   ];
 }
 /**
@@ -632,7 +650,12 @@ export function estadoSemanal(db, ref = Date.now()) {
       estado: v >= m.objMin ? (v > m.objMax ? 'excedido' : 'listo') : (v > 0 ? 'corto' : 'sin-empezar'),
       progreso: m.objMin ? Math.min(1.5, v / m.objMin) : 0,
     };
-  }).sort((a, b) => (b.falta - a.falta) || (a.prioridad - b.prioridad));
+  }).sort((a, b) =>
+    // Los del quinto día van al final: una semana de cuatro no está incompleta
+    // por no haber entrenado gemelos, y mostrarlos primero sería mentir sobre
+    // lo que falta.
+    (Number(!!a.condicional) - Number(!!b.condicional)) ||
+    (b.falta - a.falta) || (a.prioridad - b.prioridad));
 }
 
 // ---------- recuperación ----------
@@ -679,8 +702,13 @@ export function avisosRecuperacion(db, plantillaId, ref = Date.now()) {
 export function cobertura(db, plantillaId, ref = Date.now()) {
   const estado = estadoSemanal(db, ref);
   const aporte = aporteDePlantilla(db, plantillaId);
+  // Mientras falte un rol de arriba, lo que deben las piernas no es déficit:
+  // es trabajo del quinto día. Contarlo inflaba el "faltan N" de todas las
+  // plantillas y hacía que piernas pareciera lo más urgente un lunes.
+  const quintoAlDia = rolesPendientes(db, ref).length === 0;
   let cubre = 0, total = 0;
   for (const m of estado) {
+    if (m.condicional && !quintoAlDia) continue;
     total += m.falta;
     cubre += Math.min(m.falta, aporte[m.id] || 0);
   }
@@ -766,7 +794,21 @@ export function rolesDeLaSemana(db, ref = Date.now()) {
   return hechos;
 }
 
-const LABEL_ROL = { empuje: 'empuje', tiron: 'tirón', brazos: 'brazos', piernas: 'piernas' };
+const LABEL_ROL = {
+  empuje: 'empuje', tiron: 'tirón', brazos: 'brazos',
+  hombros: 'hombros', piernas: 'piernas',
+};
+
+/**
+ * Roles de la semana que todavía no hiciste, sin contar los condicionales.
+ * Es la pregunta que decide si el quinto día corresponde o si todavía te falta
+ * cerrar arriba.
+ */
+export function rolesPendientes(db, ref = Date.now()) {
+  const hechos = rolesDeLaSemana(db, ref);
+  const todos = [...new Set(db.plantillas.filter(p => p.rol && !p.condicional).map(p => p.rol))];
+  return todos.filter(r => !hechos[r]);
+}
 
 /**
  * Ordena las plantillas por lo que suman hoy: cuánto déficit de la semana
@@ -777,6 +819,7 @@ const LABEL_ROL = { empuje: 'empuje', tiron: 'tirón', brazos: 'brazos', piernas
  */
 export function sugerencias(db, ref = Date.now()) {
   const rolesHechos = rolesDeLaSemana(db, ref);
+  const pendientes = rolesPendientes(db, ref);
   const lista = db.plantillas.map(p => {
     const cob = cobertura(db, p.id, ref);
     const { castigo, cuales } = castigoRecuperacion(db, p.id, ref);
@@ -797,7 +840,12 @@ export function sugerencias(db, ref = Date.now()) {
       // cada uno, y el hermano de un rol ya hecho aporta el mismo volumen otra
       // vez, no volumen que falte.
       repetido: repetido ? repetido[0] : null,
-      puntaje: cob.cubre - castigo - ex.total * 0.5 - (repetido ? 100 : 0),
+      // El quinto día es el quinto: mientras falte cerrar arriba va abajo de
+      // todo, pero por encima de un rol ya hecho. No está mal hacerlo, está
+      // fuera de orden.
+      fueraDeOrden: p.condicional && pendientes.length > 0 ? pendientes.length : 0,
+      puntaje: cob.cubre - castigo - ex.total * 0.5
+        - (repetido ? 100 : 0) - (p.condicional && pendientes.length ? 50 : 0),
       enRecuperacion: cuales,
     };
   });
@@ -811,6 +859,11 @@ export function sugerencias(db, ref = Date.now()) {
     if (x.repetido) {
       x.estado = 'hecho';
       x.motivo = `el ${LABEL_ROL[x.rol] ?? x.rol} de esta semana ya lo hiciste con ${x.repetido}`;
+    } else if (x.fueraDeOrden) {
+      x.estado = 'quinto';
+      x.motivo = 'es el quinto día · ' + (x.fueraDeOrden === 4
+        ? 'todavía no hiciste ninguno de los cuatro de arriba'
+        : `te ${x.fueraDeOrden === 1 ? 'falta uno' : `faltan ${x.fueraDeOrden}`} de los cuatro de arriba`);
     } else if (x.castigo >= x.cubre && x.enRecuperacion.length) {
       x.estado = 'esperar';
       x.motivo = `${r.musculo.label} recupera en ${r.faltan} h`;

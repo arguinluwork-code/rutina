@@ -5,7 +5,7 @@ import { S, ir, mutar } from './app.js';
 import { iniciarSesion, iniciarSesionLibre, terminarSesion, descartarSesion, resumen } from './session.js';
 import {
   sesionesTerminadas, estadoSemanal, avisosRecuperacion, sugerencias,
-  contextoSemana, seriesDePlantilla, semanasEntrenadas,
+  contextoSemana, seriesDePlantilla, semanasEntrenadas, rolesPendientes,
 } from './data.js';
 
 /** Sesiones cargadas después del último respaldo. */
@@ -48,8 +48,14 @@ function bloqueSemana(db) {
   const objetivo = db.config.objetivoSemanal;
   const sem = semanasEntrenadas(db, 1)[0];
   const estado = estadoSemanal(db);
-  const faltantes = estado.filter(m => m.falta > 0).slice(0, 4);
-  const listos = estado.filter(m => m.estado === 'listo' || m.estado === 'excedido').length;
+  // Los del quinto día no entran en la cuenta hasta que cierres los cuatro de
+  // arriba. Contarlos hacía que una semana perfecta de cuatro se viera como
+  // 8 de 13, que es falso: no le falta nada.
+  const pend = rolesPendientes(db).length;
+  const cuentan = estado.filter(m => !m.condicional || pend === 0);
+  const faltantes = cuentan.filter(m => m.falta > 0).slice(0, 4);
+  const listos = cuentan.filter(m => m.estado === 'listo' || m.estado === 'excedido').length;
+  const quintoPendiente = pend === 0 && estado.some(m => m.condicional && m.falta > 0);
 
   return h('button', {
     class: 'card', style: 'width:100%;text-align:left',
@@ -58,10 +64,12 @@ function bloqueSemana(db) {
     h('div', { class: 'card-pad', style: 'gap:10px' },
       h('div', { style: 'display:flex;align-items:baseline;justify-content:space-between;gap:10px' },
         h('span', { class: 'kicker' }, 'Esta semana'),
-        h('span', { class: 'tiny num' }, `${sem.n} de ${objetivo} sesiones · ${listos}/${estado.length} músculos al día`),
+        h('span', { class: 'tiny num' }, `${sem.n} de ${objetivo} sesiones · ${listos}/${cuentan.length} músculos al día`),
       ),
       faltantes.length === 0
-        ? h('span', { class: 'sub' }, 'Todos los músculos llegaron a su objetivo semanal.')
+        ? h('span', { class: 'sub' }, quintoPendiente
+            ? 'Los cuatro de arriba están cerrados. Si aparece un quinto día, piernas.'
+            : 'Todos los músculos llegaron a su objetivo semanal.')
         : h('div', { class: 'stack', style: 'gap:7px' },
             faltantes.map(m => h('div', { class: 'bar' },
               h('span', { class: 'bl' }, m.label),
@@ -102,7 +110,8 @@ export function pantallaInicio(db) {
 }
 
 const NOMBRE_ROL = {
-  empuje: 'Empuje', tiron: 'Tirón', brazos: 'Brazos', piernas: 'Piernas y core',
+  empuje: 'Empuje', tiron: 'Tirón', brazos: 'Brazos',
+  hombros: 'Hombros', piernas: 'Piernas y core',
 };
 
 /**
@@ -113,10 +122,12 @@ const NOMBRE_ROL = {
  */
 function grupoRol(db, sug, rol, plantillas) {
   const hecho = plantillas.every(x => x.estado === 'hecho');
+  const quinto = plantillas.some(x => x.estado === 'quinto');
   return h('div', { class: 'stack', style: 'gap:6px' },
     h('div', { style: 'display:flex;align-items:baseline;gap:8px;padding:6px 2px 0' },
       h('span', { class: 'kicker', style: 'flex:1' }, NOMBRE_ROL[rol] ?? 'Sueltas'),
-      hecho ? h('span', { class: 'tiny', style: 'color:var(--ok,var(--fg-2))' }, 'hecho esta semana') : null,
+      hecho ? h('span', { class: 'tiny' }, 'hecho esta semana')
+        : quinto ? h('span', { class: 'tiny' }, 'opcional') : null,
     ),
     plantillas.map(x => filaPlantilla(db, x)),
   );
@@ -125,11 +136,12 @@ function grupoRol(db, sug, rol, plantillas) {
 function filaPlantilla(db, x) {
   const sel = S.plSel === x.id;
   const esperar = x.estado === 'esperar';
-  const apagada = esperar || x.estado === 'hecho' || x.estado === 'pasa';
+  const apagada = esperar || x.estado === 'hecho' || x.estado === 'pasa' || x.estado === 'quinto';
   const insignia =
     x.estado === 'mejor' ? ['La que más suma', 'badge on', ''] :
     x.estado === 'esperar' ? ['Mejor esperar', 'badge', 'color:var(--warn);border-color:var(--warn)'] :
     x.estado === 'hecho' ? ['Ya lo hiciste', 'badge', ''] :
+    x.estado === 'quinto' ? ['5º día', 'badge', ''] :
     x.estado === 'pasa' ? ['Se pasa', 'badge', ''] : null;
 
   return h('button', {

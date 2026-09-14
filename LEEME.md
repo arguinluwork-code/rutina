@@ -91,40 +91,61 @@ ni librerías. Es lo que hace que ande sin conexión de verdad.
   muestra "Menos ayuda" en vez de "Máximo". Mostrar el máximo ahí sería decir
   exactamente lo contrario de lo que pasó.
 
-## La rutina: cuatro roles, ocho bloques
+## La rutina: cuatro roles arriba, piernas como quinto
 
-La semana es **un bloque de cada rol**: empuje, tirón, brazos, piernas. Cada rol
+La semana son **cuatro sesiones de tren superior**: empuje, tirón, brazos,
+hombros. **Piernas es un quinto día condicional**, no uno de los cuatro. Cada rol
 tiene dos bloques hermanos con el **mismo perfil muscular** y distintos
 ejercicios, así que elegir hermano cambia qué hacés, nunca cuánto recibe cada
-músculo. Las **16 combinaciones posibles cierran los 16 músculos** dentro de su
-objetivo, verificado por cálculo sobre las plantillas reales del código.
+músculo.
 
-Antes eran seis bloques sueltos de los que elegías cuatro cualquiera: quince
-sumas distintas, de las que cerraba **una**, y nueve de las veinte semanas de
-tres días se pasaban de algún techo. No era cuestión de afinar números: con
-bloques independientes el problema no tiene solución.
+Verificado por cálculo sobre las plantillas reales del código: **las 16
+combinaciones de cuatro cierran** los once músculos de arriba, y **las 32 que
+suman el quinto día cierran los dieciséis**, piernas incluidas.
 
-La regla que lo rompía: **ningún bloque puede llegar solo al techo semanal de un
-músculo**. El Empuje viejo entregaba pecho 12, que es el máximo entero de la
-semana en una sentada, así que cualquier pectoral agregado después se pasaba.
-Ahora el bloque más cargado queda en 8 de 12.
+Sacar las piernas de los cuatro días liberó casi veinte series. Con piernas
+adentro, pecho 8, dorsal 9 y posterior 9 quedaban todos apoyados en el piso de
+su rango, o sea a la izquierda del óptimo de la curva. Ahora:
 
-- El **lateral aparece en los cuatro bloques** (5+3+6+3). Es el de mayor retorno
-  y el único que no recibe nada indirecto: los press le pegan al anterior.
-  Concentrarlo en un bloque hacía que saltear ese bloque lo hundiera.
-- **Pecho 8 y dorsal 9 quedan en el piso a propósito.** Con 87 series de
-  presupuesto y los brazos como prioridad, subirlos sale de los bíceps.
-- El **hombro anterior recibe 4**, que es exactamente lo que dan los dos press
-  solos. Cero trabajo directo.
-- **Con tres días el que se saltea es Piernas**, y está verificado: los ocho
-  músculos del tren superior siguen en rango y ninguno se pasa. Saltear Brazos
-  deja bíceps en 9 de 16.
-- **No hay quinto día.** Cuatro ya deja todo en el medio del rango.
+| | antes | ahora | óptimo |
+|---|---|---|---|
+| Hombro lateral | 17 | **19** | 10-20 |
+| Bíceps | 17 | **19** | 10-20 |
+| Tríceps | 16 | **19** | 10-20 |
+| Hombro posterior | 9 | **13** | 10-20 |
+| Pecho | 8 | **12** | 10-20 |
+| Dorsal | 9 | **13** | 10-20 |
+| Espalda alta | 9.5 | **11.5** | 10-20 |
+
+85 series en cuatro días, más 20 en el quinto si aparece.
+
+**Condicional** significa algo concreto en el código: los músculos del quinto día
+llevan `condicional: true`, y su déficit **no cuenta** mientras falte cerrar
+alguno de los cuatro de arriba. Sin eso, un lunes el resumen decía "4 de 16
+músculos al día" y el sugeridor ofrecía piernas como lo más urgente, que es
+falso: una semana de cuatro no está incompleta por no haber entrenado gemelos.
+Cuando los cuatro están hechos, piernas pasa sola de "5º día" a "La que más
+suma".
+
+Otras decisiones del armado:
+
+- **Ningún bloque llega solo al techo semanal de ningún músculo.** El Empuje de
+  la versión de seis bloques entregaba pecho 12 sobre un techo de 12: tocabas
+  ese bloque y el pecho ya no admitía nada más. Hoy el más cargado queda en 8
+  de 14.
+- **El lateral se reparte entre los cuatro.** Es el de mayor retorno y el único
+  que no recibe nada indirecto: los press le pegan al anterior.
+- **El hombro anterior recibe 8 sin una sola serie que lo busque**: es lo que
+  sobra de los press. Perseguirlo le robaría lugar al lateral y al posterior.
+- **El bloque de piernas ya no lleva elevación lateral.** La llevaba cuando era
+  uno de los cuatro; como quinto condicional, sumarla pasaría el techo de 20.
+- **Con tres días, el rol que menos duele saltear es hombros.** Los otros tres
+  dejan un agujero grande: sin tirón el dorsal queda en 4 de 10.
 
 El sugeridor de Inicio agrupa por rol y marca "Ya lo hiciste" cuando el rol de
-la semana está cumplido, además de "La que más suma", "Mejor esperar" cuando un
-músculo todavía se recupera y "Se pasa" cuando mandaría más series de sobra que
-de déficit cubierto.
+la semana está cumplido, "5º día" cuando falta cerrar arriba, "La que más suma",
+"Mejor esperar" cuando un músculo todavía se recupera y "Se pasa" cuando
+mandaría más series de sobra que de déficit cubierto.
 
 ## La curva de crecimiento, y por qué es la misma para todos
 

@@ -168,7 +168,7 @@ function aFilas(db) {
   // decisión tuya y no debe perderse al restaurar.
   const plantillas = db.plantillas.map((p, i) => ({
     id: p.id, user_id: u, nombre: p.nombre, foco: p.foco || '',
-    rol: p.rol || null,
+    rol: p.rol || null, condicional: !!p.condicional,
     version_actual: p.versionActual, versiones: p.versiones, orden: i,
   }));
 
@@ -212,6 +212,7 @@ function deFilas(f, perfil) {
     .sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0))
     .map(p => ({
       id: p.id, nombre: p.nombre, foco: p.foco, rol: p.rol ?? null,
+      condicional: !!p.condicional,
       versionActual: p.version_actual, versiones: p.versiones,
     }));
 

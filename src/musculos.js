@@ -6,11 +6,21 @@
 // estudios), y es también el que usa la literatura de rangos (Baz-Valle 2022).
 //
 // Los números NO son el rango poblacional de 12-20 aplicado a todo: están
-// calibrados contra un presupuesto real de 3-4 sesiones de 20-24 series, que da
-// entre 66 y 88 series ejecutadas por semana. Pedir 12-20 en los dieciséis
-// grupos serían ~200 fraccionadas y no entra en el calendario. Especializar es
-// justamente eso: poner lo secundario en mantenimiento (~4-6 series alcanzan
-// para no perder nada) y gastar el presupuesto en lo prioritario.
+// calibrados contra un presupuesto real. La semana son CUATRO sesiones de tren
+// superior de 20-22 series, unas 85 ejecutadas, y las piernas quedan como un
+// QUINTO día condicional en vez de ocupar uno de los cuatro. Ese cambio libera
+// casi veinte series: con piernas adentro, pecho, dorsal y posterior quedaban
+// todos apoyados en el piso de su rango; ahora los tres entran en la zona
+// óptima de la curva sin sacarle nada a los brazos.
+//
+// Los músculos marcados `condicional` son los del quinto día. Su objetivo vale
+// igual, pero no cuenta como déficit mientras te falte cerrar alguno de los
+// cuatro bloques de arriba: una semana de cuatro no está incompleta por no
+// haber entrenado gemelos.
+//
+// Pedir 12-20 en los dieciséis grupos serían ~200 fraccionadas y no entra en
+// ningún calendario. Especializar sigue siendo gastar el presupuesto en lo
+// prioritario; lo que cambió es que ahora hay más presupuesto arriba.
 
 export const PRIORIDADES = {
   1: { label: 'Prioridad', color: 'var(--acc)' },
@@ -24,33 +34,33 @@ export const PRIORIDADES = {
  * @property nota           por qué ese número, para que sea auditable
  */
 export const MUSCULOS = [
-  { id: 'hombro-lateral', label: 'Hombro lateral', prioridad: 1, objMin: 14, objMax: 20, recuperacion: 48,
+  { id: 'hombro-lateral', label: 'Hombro lateral', prioridad: 1, objMin: 16, objMax: 20, recuperacion: 48,
     nota: 'El de mayor retorno para hombros anchos. No recibe casi nada indirecto de los press, que le pegan al anterior: es volumen directo o nada.' },
   { id: 'biceps', label: 'Bíceps', prioridad: 1, objMin: 16, objMax: 20, recuperacion: 48,
     nota: 'Jalones y remos ya aportan media serie cada uno, así que buena parte del objetivo se cubre sin curl.' },
-  { id: 'triceps', label: 'Tríceps', prioridad: 1, objMin: 14, objMax: 18, recuperacion: 48,
+  { id: 'triceps', label: 'Tríceps', prioridad: 1, objMin: 16, objMax: 20, recuperacion: 48,
     nota: 'Enes (2024) lo encontró respondiendo bien a volumen alto. Los press ya aportan indirecto.' },
-  { id: 'hombro-posterior', label: 'Hombro posterior', prioridad: 1, objMin: 8, objMax: 12, recuperacion: 48,
-    nota: 'El más abandonado y el que equilibra el hombro de perfil.' },
+  { id: 'hombro-posterior', label: 'Hombro posterior', prioridad: 1, objMin: 10, objMax: 14, recuperacion: 48,
+    nota: 'El más abandonado y el que equilibra el hombro de perfil. Con las piernas fuera de los cuatro días entra entero en la zona óptima.' },
 
-  { id: 'pecho', label: 'Pecho', prioridad: 2, objMin: 8, objMax: 12, recuperacion: 60,
-    nota: 'Sostén, no prioridad: con el presupuesto de sesión, subirlo sería a costa de brazos.' },
-  { id: 'dorsal', label: 'Dorsal', prioridad: 2, objMin: 9, objMax: 13, recuperacion: 60,
-    nota: 'Ancho de espalda. Jalones y remos.' },
-  { id: 'espalda-alta', label: 'Espalda alta', prioridad: 2, objMin: 7, objMax: 10, recuperacion: 60,
+  { id: 'pecho', label: 'Pecho', prioridad: 2, objMin: 10, objMax: 14, recuperacion: 60,
+    nota: 'Sostén, no prioridad, pero ya no en el piso: con los cuatro días de tren superior entra en la zona óptima sin sacarle nada a los brazos.' },
+  { id: 'dorsal', label: 'Dorsal', prioridad: 2, objMin: 10, objMax: 14, recuperacion: 60,
+    nota: 'Ancho de espalda. Jalones y remos. Igual que el pecho, subió al óptimo cuando las piernas dejaron de ocupar un día fijo.' },
+  { id: 'espalda-alta', label: 'Espalda alta', prioridad: 2, objMin: 8, objMax: 12, recuperacion: 60,
     nota: 'Trapecio medio y romboides: espesor y postura.' },
   { id: 'hombro-anterior', label: 'Hombro anterior', prioridad: 2, objMin: 4, objMax: 10, recuperacion: 60,
     nota: 'Deliberadamente bajo, y el piso es lo que te dan los press solos. Sumarle trabajo directo le roba lugar al lateral y al posterior, que son los que faltan.' },
 
-  { id: 'cuadriceps', label: 'Cuádriceps', prioridad: 3, objMin: 6, objMax: 10, recuperacion: 72,
+  { id: 'cuadriceps', label: 'Cuádriceps', prioridad: 3, objMin: 6, objMax: 10, condicional: true, recuperacion: 72,
     nota: 'Mantenimiento con margen. 6 series semanales alcanzan para no perder masa.' },
-  { id: 'isquiotibiales', label: 'Isquiotibiales', prioridad: 3, objMin: 5, objMax: 8, recuperacion: 72,
+  { id: 'isquiotibiales', label: 'Isquiotibiales', prioridad: 3, objMin: 5, objMax: 8, condicional: true, recuperacion: 72,
     nota: 'Mantenimiento. Importante para la rodilla aunque no sea objetivo estético.' },
-  { id: 'gemelos', label: 'Gemelos', prioridad: 3, objMin: 4, objMax: 7, recuperacion: 48,
+  { id: 'gemelos', label: 'Gemelos', prioridad: 3, objMin: 4, objMax: 7, condicional: true, recuperacion: 48,
     nota: 'Mantenimiento.' },
-  { id: 'gluteo', label: 'Glúteo', prioridad: 3, objMin: 3, objMax: 6, recuperacion: 72,
+  { id: 'gluteo', label: 'Glúteo', prioridad: 3, objMin: 3, objMax: 6, condicional: true, recuperacion: 72,
     nota: 'Se cubre casi entero con lo indirecto de prensa y sentadilla.' },
-  { id: 'abdomen', label: 'Abdomen', prioridad: 3, objMin: 3, objMax: 6, recuperacion: 48,
+  { id: 'abdomen', label: 'Abdomen', prioridad: 3, objMin: 3, objMax: 6, condicional: true, recuperacion: 48,
     nota: 'Mantenimiento.' },
   { id: 'antebrazo', label: 'Antebrazo', prioridad: 3, objMin: 0, objMax: 5, recuperacion: 48,
     nota: 'Se cubre solo con todo lo que tirás y agarrás.' },

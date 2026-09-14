@@ -14,8 +14,14 @@
 // - Las plantillas se versionan append-only: editar es un borrador, guardar
 //   crea una versión con fecha.
 
-import { MUSCULOS, musculo, labelMusculo, UMBRAL_ESTIMULO } from './musculos.js';
-export { MUSCULOS, musculo, labelMusculo, UMBRAL_ESTIMULO };
+import {
+  MUSCULOS, musculo, labelMusculo, UMBRAL_ESTIMULO,
+  CURVA, ZONAS, zonaVolumen, fraccionCubierta, rendimientoMarginal,
+} from './musculos.js';
+export {
+  MUSCULOS, musculo, labelMusculo, UMBRAL_ESTIMULO,
+  CURVA, ZONAS, zonaVolumen, fraccionCubierta, rendimientoMarginal,
+};
 
 export const VERSION_DATOS = 11;
 

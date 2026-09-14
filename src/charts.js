@@ -1,6 +1,7 @@
 // Gráficos. Sobrios: una sola serie en acento, el resto gris, sin grillas pesadas.
 
 import { svg, h, fFecha, fPeso } from './ui.js';
+import { CURVA, ZONAS } from './musculos.js';
 
 const W = 320, PAD_L = 34, PAD_R = 8, PAD_T = 10, PAD_B = 20;
 
@@ -87,5 +88,61 @@ export function vacio(titulo, texto) {
   return h('div', { class: 'chart' },
     h('h3', null, titulo),
     h('div', { class: 'empty', style: 'margin-top:10px' }, texto),
+  );
+}
+
+// ------------------------------------------------------- escala de volumen
+
+/**
+ * La curva de crecimiento con el objetivo de la planificación encima.
+ *
+ * Son dos cosas distintas y por eso se dibujan distinto: el color de fondo es
+ * la evidencia (dónde crece un músculo, igual para todos), y el marco blanco es
+ * una decisión tuya (cuánto de eso le toca a este músculo con el presupuesto
+ * que tenés). Cuando el marco cae fuera del verde no es un error de la app:
+ * es lo que significa especializar, y conviene verlo.
+ *
+ * @param hecho  series de esta semana; si viene, se marca con una línea.
+ */
+export function escalaVolumen(m, hecho = null) {
+  const pct = (n) => Math.max(0, Math.min(100, (n / CURVA.tope) * 100));
+  const zonas = ZONAS.map(z => h('div', {
+    class: 'z ' + z.id,
+    style: `left:${pct(z.desde)}%;width:${pct(z.hasta) - pct(z.desde)}%`,
+  }));
+  const cortes = [CURVA.piso, CURVA.optMin, CURVA.optMax, CURVA.plano]
+    .map(n => h('div', { class: 'corte', style: `left:${pct(n)}%` }));
+
+  const objetivo = m.objMax > 0 ? h('div', {
+    class: 'obj',
+    style: `left:${pct(m.objMin)}%;width:${Math.max(2, pct(m.objMax) - pct(m.objMin))}%`,
+    title: `Tu objetivo: ${m.objMin}–${m.objMax}`,
+  }) : null;
+
+  const marca = hecho != null && hecho > 0
+    ? h('div', { class: 'hoy', style: `left:calc(${pct(hecho)}% - 1.5px)`, title: `Esta semana: ${hecho}` })
+    : null;
+
+  return h('div', null,
+    h('div', { class: 'esc' }, zonas, cortes, objetivo, marca),
+    // Los números van en la posición real de su corte, no repartidos parejo:
+    // un eje que miente sobre dónde cae el 10 no sirve para leer la escala.
+    h('div', { class: 'esc-pie' },
+      [0, CURVA.piso, CURVA.optMin, CURVA.optMax, CURVA.tope].map((n, i, a) =>
+        h('span', {
+          style: `left:${pct(n)}%;transform:translateX(${i === 0 ? '0' : i === a.length - 1 ? '-100%' : '-50%'})`,
+        }, n === CURVA.tope ? `${n}+` : String(n))),
+    ),
+  );
+}
+
+/** La leyenda, una sola vez por pantalla: repetirla en cada fila es ruido. */
+export function leyendaEscala() {
+  return h('div', { class: 'esc-ley' },
+    h('span', null, h('i', { style: 'background:rgba(154,157,165,.45)' }), 'No alcanza'),
+    h('span', null, h('i', { style: 'background:rgba(255,176,32,.6)' }), 'Falta para el óptimo'),
+    h('span', null, h('i', { style: 'background:rgba(204,255,51,.7)' }), 'Óptimo'),
+    h('span', null, h('i', { style: 'background:rgba(229,72,77,.6)' }), 'Rinde cada vez menos'),
+    h('span', null, h('i', { style: 'border:2px solid var(--fg);background:transparent' }), 'Tu objetivo'),
   );
 }

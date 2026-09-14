@@ -7,8 +7,10 @@ import { guardar } from './db.js';
 import {
   MUSCULOS, musculo, labelMusculo, plantillaPorId, versionActual, itemsDe,
   seriesDePlantilla, aporteDePlantilla, variantesDe, variante, nombreCompleto,
-  uid, fRango, fEsfuerzo, PASO,
+  uid, fRango, fEsfuerzo, PASO, estadoSemanal,
+  CURVA, ZONAS, zonaVolumen, fraccionCubierta, rendimientoMarginal,
 } from './data.js';
+import { escalaVolumen, leyendaEscala } from './charts.js';
 
 // El entrenamiento se edita sobre un borrador. Guardar crea UNA versión nueva.
 function borrador(db, plantillaId) {
@@ -111,6 +113,35 @@ export function pantallaObjetivos(db) {
     p, items: MUSCULOS.filter(m => m.prioridad === p),
   }));
   const titulo = { 1: 'Prioridad', 2: 'Sostén', 3: 'Mantenimiento' };
+  const semana = Object.fromEntries(estadoSemanal(db).map(m => [m.id, m.hecho]));
+
+  const explicar = (m) => {
+    const hecho = semana[m.id] ?? 0;
+    const zObj = m.objMax > 0 ? zonaVolumen(m.objMin) : null;
+    const zHoy = zonaVolumen(hecho);
+    const nomZona = Object.fromEntries(ZONAS.map(z => [z.id, z]));
+    return abrirHoja({
+      titulo: m.label,
+      meta: `Tu objetivo ${m.objMin}–${m.objMax} · óptimo ${CURVA.optMin}–${CURVA.optMax}`,
+      cuerpo: [
+        escalaVolumen(m, hecho),
+        leyendaEscala(),
+        h('p', { class: 'sub', style: 'font-size:15px;line-height:1.5;margin:14px 0 0' }, m.nota),
+        h('div', { class: 'stack tight', style: 'margin-top:12px' },
+          h('span', { class: 'tiny' },
+            `Esta semana llevás ${hecho}: ${nomZona[zHoy].label.toLowerCase()}. ` +
+            `Con ese volumen capturás el ${Math.round(fraccionCubierta(hecho) * 100)}% de la respuesta ` +
+            `alcanzable, y una serie más rendiría el ${Math.round(rendimientoMarginal(hecho) * 100)}% ` +
+            'de lo que rindió la primera.'),
+          zObj && zObj !== 'optimo' ? h('span', { class: 'tiny', style: 'color:var(--warn)' },
+            `Tu objetivo arranca en ${m.objMin}, que está ${m.objMin < CURVA.optMin ? 'por debajo del' : 'por encima del'} ` +
+            'óptimo de crecimiento. No es un error: es lo que cuesta priorizar otra cosa con el presupuesto de sesiones que tenés.') : null,
+          h('span', { class: 'tiny' }, `Recuperación sugerida: ${m.recuperacion} h entre estímulos fuertes.`),
+        ),
+      ],
+      pie: h('button', { class: 'btn', style: 'flex:1', onclick: cerrarHoja }, icono('cerrar', 16), 'Cerrar'),
+    });
+  };
 
   return h('main', { class: 'scr' },
     h('div', { class: 'hd-back' },
@@ -121,28 +152,22 @@ export function pantallaObjetivos(db) {
       h('div', { class: 'stack' },
         h('span', { class: 'tiny', style: 'line-height:1.45' },
           'En series fraccionadas: el músculo primario de un ejercicio suma 1 por serie y cada secundario 0.5. ' +
-          'Los números están calibrados contra 3 o 4 sesiones de hasta ' + db.config.maxSeriesSesion + ' series.'),
+          `El fondo de color es la curva de crecimiento, que es la misma para todos los músculos (${CURVA.optMin}–${CURVA.optMax} es el óptimo). ` +
+          'El marco blanco es TU objetivo: cuánto de ese óptimo le toca a cada uno con 3 o 4 sesiones de hasta ' +
+          db.config.maxSeriesSesion + ' series.'),
+        leyendaEscala(),
         grupos.map(g => h('div', { class: 'stack tight' },
           h('span', { class: 'sec-title' }, titulo[g.p]),
           g.items.map(m => h('button', {
-            class: 'listrow',
-            onclick: () => abrirHoja({
-              titulo: m.label,
-              meta: `${m.objMin}–${m.objMax} por semana`,
-              cuerpo: [
-                h('p', { class: 'sub', style: 'font-size:15px;line-height:1.5;margin:0' }, m.nota),
-                h('p', { class: 'tiny', style: 'margin:0' },
-                  `Recuperación sugerida: ${m.recuperacion} h entre estímulos fuertes.`),
-              ],
-              pie: h('button', { class: 'btn', style: 'flex:1', onclick: cerrarHoja }, icono('cerrar', 16), 'Cerrar'),
-            }),
+            class: 'listrow', style: 'flex-direction:column;align-items:stretch;gap:0;padding:12px 14px',
+            onclick: () => explicar(m),
           },
-            h('span', { class: 'txt' },
-              h('b', null, m.label),
-              h('small', null, `${m.recuperacion} h de recuperación`),
+            h('span', { style: 'display:flex;align-items:baseline;gap:8px;width:100%' },
+              h('b', { style: 'flex:1;text-align:left' }, m.label),
+              h('span', { class: 'num', style: 'font-size:17px;font-weight:700' }, `${m.objMin}–${m.objMax}`),
+              chev(),
             ),
-            h('span', { class: 'num', style: 'font-size:17px;font-weight:700;flex:none' }, `${m.objMin}–${m.objMax}`),
-            chev(),
+            escalaVolumen(m, semana[m.id] ?? 0),
           )),
         )),
       ),

@@ -126,6 +126,42 @@ la semana está cumplido, además de "La que más suma", "Mejor esperar" cuando 
 músculo todavía se recupera y "Se pasa" cuando mandaría más series de sobra que
 de déficit cubierto.
 
+## La curva de crecimiento, y por qué es la misma para todos
+
+En Rutina → Objetivos semanales cada músculo muestra dos cosas superpuestas que
+conviene no confundir:
+
+- **El fondo de color es la curva dosis-respuesta**, que sale de la evidencia y
+  es **igual para todos los músculos**. La meta-regresión de Pelland (2026, 67
+  estudios) buscó si la curva cambiaba según el grupo muscular y no encontró
+  moderación que valga la pena. Lo que cambia entre músculos no es dónde está el
+  óptimo sino cuánto trabajo indirecto ya reciben, y eso el conteo fraccionado
+  ya lo cuenta. Inventar un óptimo distinto para el bíceps y para el cuádriceps
+  sería precisión fabricada.
+- **El marco blanco es el objetivo de esta planificación**, que sí es una
+  decisión propia: cuánto de ese óptimo le toca a cada músculo con 3 o 4
+  sesiones. Cuando el marco cae fuera del verde no es un error de la app; es lo
+  que significa especializar, y conviene verlo en vez de esconderlo.
+
+El modelo es una saturación: la fracción de la respuesta alcanzable con `n`
+series es `1 - e^(-n/8)`, y el rendimiento marginal cae como `e^(-n/8)`.
+Calibrado contra tres anclas: Schoenfeld y Krieger (2017) para el piso, Baz-Valle
+(2022) para el óptimo de 12-20, y Pelland (2026) para el aplanamiento. Los cortes
+no son redondeos sino los puntos donde el rendimiento marginal cruza un umbral:
+
+| series | capturás | la siguiente rinde | |
+|---|---|---|---|
+| menos de 6 | menos del 53% | mucho | **no alcanza** |
+| 6 a 10 | 53-71% | 47-29% | falta para el óptimo |
+| 10 a 20 | 71-92% | 29-8% | **óptimo** |
+| 20 a 28 | 92-97% | menos del 8% | rinde cada vez menos |
+| más de 28 | 97%+ | menos del 3% | la curva ya es plana |
+
+La escala también marca con una línea cuánto llevás esta semana, y la ficha de
+cada músculo dice en números qué fracción estás capturando y cuánto rendiría una
+serie más. Una recomendación que no se puede auditar sirve para obedecer, no
+para decidir.
+
 ## Migración de datos
 
 `VERSION_DATOS` en `src/data.js` marca el formato. Al abrir, si la base guardada

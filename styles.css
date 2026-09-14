@@ -287,3 +287,32 @@ input,textarea{font-family:inherit;-webkit-tap-highlight-color:transparent}
 /* El descanso deja la barra de tabs a la vista: se puede ir a mirar otra cosa
    mientras corre. El aviso de fin (¡Dale!) sí toma la pantalla entera. */
 .rest{bottom:calc(68px + var(--safe-b))}
+
+/* ---------------------------------------------- escala de volumen semanal */
+/* Dos cosas superpuestas que no hay que confundir: la curva de crecimiento,
+   que es igual para todos los músculos y sale de la evidencia, y el objetivo
+   de esta planificación, que es una decisión de presupuesto y va encima. */
+.esc { position:relative; height:26px; border-radius:6px; overflow:hidden;
+       background:var(--surf-2); margin:8px 0 6px; }
+.esc .z { position:absolute; top:0; bottom:0; }
+/* Un degradé de sentido, no cinco colores sueltos: gris es vacío, ámbar es
+   falta, verde es donde conviene, rojo es esfuerzo que no vuelve. Repetir el
+   ámbar a los dos lados haría que el mismo color signifique dos cosas. */
+.esc .z.insuficiente { background:rgba(154,157,165,.16); }
+.esc .z.creciendo    { background:rgba(255,176,32,.22); }
+.esc .z.optimo       { background:rgba(204,255,51,.26); }
+.esc .z.decae        { background:rgba(229,72,77,.22); }
+.esc .z.plano        { background:rgba(229,72,77,.42); }
+.esc .corte { position:absolute; top:0; bottom:0; width:1px; background:var(--line); }
+/* El objetivo va como marco, no como relleno: se tiene que leer que está
+   apoyado sobre la curva y no que la reemplaza. */
+.esc .obj { position:absolute; top:3px; bottom:3px; border:2px solid var(--fg);
+            border-radius:5px; box-shadow:0 0 0 2px var(--bg) inset; }
+.esc .hoy { position:absolute; top:-1px; bottom:-1px; width:3px; background:var(--fg);
+            box-shadow:0 0 0 1.5px var(--bg); }
+.esc-pie { position:relative; height:14px; font-size:11px;
+           color:var(--fg-2); font-variant-numeric:tabular-nums; }
+.esc-pie span { position:absolute; top:0; white-space:nowrap; }
+.esc-ley { display:flex; flex-wrap:wrap; gap:4px 12px; font-size:11.5px; color:var(--fg-2); }
+.esc-ley i { display:inline-block; width:9px; height:9px; border-radius:2px;
+             margin-right:5px; vertical-align:-1px; font-style:normal; }

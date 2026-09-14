@@ -91,23 +91,40 @@ ni librerías. Es lo que hace que ande sin conexión de verdad.
   muestra "Menos ayuda" en vez de "Máximo". Mostrar el máximo ahí sería decir
   exactamente lo contrario de lo que pasó.
 
-## La semana canónica
+## La rutina: cuatro roles, ocho bloques
 
-Las cuatro plantillas **Empuje + Tirón + Brazos + Piernas y core** están
-calibradas para que, hechas una vez cada una, los 16 músculos caigan dentro de
-su objetivo semanal: ni cortos ni pasados. Es una semana cerrada, verificada
-por cálculo y no por intuición.
+La semana es **un bloque de cada rol**: empuje, tirón, brazos, piernas. Cada rol
+tiene dos bloques hermanos con el **mismo perfil muscular** y distintos
+ejercicios, así que elegir hermano cambia qué hacés, nunca cuánto recibe cada
+músculo. Las **16 combinaciones posibles cierran los 16 músculos** dentro de su
+objetivo, verificado por cálculo sobre las plantillas reales del código.
 
-**Hombros** y **Torso completo** son sustitutos declarados, no parte de la
-canónica: Hombros para cambiar Brazos cuando querés más deltoides, Torso para
-las semanas de tres días. Usarlos mueve los totales, y el sugeridor de Inicio
-lo muestra: marca "La que más suma", "Mejor esperar" cuando un músculo todavía
-se recupera, y "Se pasa" cuando una plantilla mandaría más series de sobra que
+Antes eran seis bloques sueltos de los que elegías cuatro cualquiera: quince
+sumas distintas, de las que cerraba **una**, y nueve de las veinte semanas de
+tres días se pasaban de algún techo. No era cuestión de afinar números: con
+bloques independientes el problema no tiene solución.
+
+La regla que lo rompía: **ningún bloque puede llegar solo al techo semanal de un
+músculo**. El Empuje viejo entregaba pecho 12, que es el máximo entero de la
+semana en una sentada, así que cualquier pectoral agregado después se pasaba.
+Ahora el bloque más cargado queda en 8 de 12.
+
+- El **lateral aparece en los cuatro bloques** (5+3+6+3). Es el de mayor retorno
+  y el único que no recibe nada indirecto: los press le pegan al anterior.
+  Concentrarlo en un bloque hacía que saltear ese bloque lo hundiera.
+- **Pecho 8 y dorsal 9 quedan en el piso a propósito.** Con 87 series de
+  presupuesto y los brazos como prioridad, subirlos sale de los bíceps.
+- El **hombro anterior recibe 4**, que es exactamente lo que dan los dos press
+  solos. Cero trabajo directo.
+- **Con tres días el que se saltea es Piernas**, y está verificado: los ocho
+  músculos del tren superior siguen en rango y ninguno se pasa. Saltear Brazos
+  deja bíceps en 9 de 16.
+- **No hay quinto día.** Cuatro ya deja todo en el medio del rango.
+
+El sugeridor de Inicio agrupa por rol y marca "Ya lo hiciste" cuando el rol de
+la semana está cumplido, además de "La que más suma", "Mejor esperar" cuando un
+músculo todavía se recupera y "Se pasa" cuando mandaría más series de sobra que
 de déficit cubierto.
-
-No puede ser "cualquier 4 de 6": con seis bloques fijos hay 15 combinaciones y
-es imposible que las 15 sumas caigan en la ventana de los 16 músculos. Lo que
-sí se puede es una semana de 4 que cierre exacta, y guiar hacia completarla.
 
 ## Migración de datos
 

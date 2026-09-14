@@ -17,7 +17,7 @@
 import { MUSCULOS, musculo, labelMusculo, UMBRAL_ESTIMULO } from './musculos.js';
 export { MUSCULOS, musculo, labelMusculo, UMBRAL_ESTIMULO };
 
-export const VERSION_DATOS = 10;
+export const VERSION_DATOS = 11;
 
 /** Salto de carga por tap. Editable por variante. */
 export const PASO = 2.5;
@@ -274,13 +274,36 @@ function it(ejercicioId, varianteId, series, repsMin, repsMax, rirMin, rirMax, d
 }
 
 /**
- * Seis bloques intercambiables, sin día de la semana.
+ * Cuatro ROLES: empuje, tirón, brazos, piernas. Una semana es uno de cada uno.
+ * Cada rol tiene además un HERMANO con el mismo perfil muscular y distintos
+ * ejercicios, así que elegir hermano cambia qué hacés, nunca cuánto recibe cada
+ * músculo.
  *
- * Regla de armado: los músculos PRIORITARIOS (lateral, bíceps, tríceps,
- * posterior) aparecen en TODOS los bloques, y los secundarios se concentran en
- * el suyo. Sin eso, cualquier semana que saltee un bloque hunde una prioridad:
- * concentrar todo el lateral en el bloque de Hombros lo dejaba en 5 de 14 en
- * cuanto entrenabas piernas en su lugar.
+ * Por qué roles y no bloques sueltos: con seis bloques de los que elegís cuatro
+ * cualquiera hay quince sumas distintas, y no existen números que hagan caer las
+ * quince dentro de la ventana de los dieciséis músculos. Se verificó: cerraba
+ * una de quince, y nueve de las veinte semanas de tres días se pasaban de algún
+ * techo. Con roles hay una sola suma que cuadrar.
+ *
+ * Regla de armado, la que rompía la versión anterior: NINGÚN bloque llega solo
+ * al techo semanal de ningún músculo. El Empuje viejo entregaba pecho 12, que
+ * es el máximo entero de la semana en una sentada: tocabas ese bloque y el
+ * pecho ya no admitía nada más, ni los fondos de una sesión suelta. Ahora
+ * entrega 8, y el bloque más cargado de la rutina queda en 8 de 12.
+ *
+ * El lateral aparece en los cuatro bloques (5+3+6+3). Es el de mayor retorno y
+ * el único que no recibe nada indirecto: los press le pegan al anterior. Si se
+ * concentra en un bloque, saltear ese bloque lo hunde.
+ *
+ * Pecho 8 y dorsal 9 quedan en el piso a propósito. Con 87 series de
+ * presupuesto y los brazos como prioridad, subirlos sale de los bíceps.
+ *
+ * El hombro anterior recibe 4, que es exactamente lo que dan los dos press
+ * solos. Cero trabajo directo: sumarle le roba lugar al lateral y al posterior.
+ *
+ * Con tres días el que se saltea es PIERNAS: verificado que los ocho músculos
+ * del tren superior siguen en rango y ninguno se pasa. Saltear Brazos deja
+ * bíceps en 9 de 16.
  *
  * Los rangos de repeticiones NO son una afirmación sobre crecimiento: con el
  * esfuerzo igualado, de 5 a 30 repeticiones da prácticamente lo mismo. Son una
@@ -296,57 +319,78 @@ function it(ejercicioId, varianteId, series, repsMin, repsMax, rirMin, rirMax, d
  * recortarlos.
  */
 function plantillasIniciales(ts) {
-  const p = (id, nombre, foco, items) => ({
-    id, nombre, foco, versionActual: 1,
+  const p = (id, rol, nombre, foco, items) => ({
+    id, rol, nombre, foco, versionActual: 1,
     versiones: [{ n: 1, ts, nota: 'Plantilla inicial', items }],
   });
   return [
-    p('pl_empuje', 'Empuje', 'Pecho, hombro y tríceps', [
+    // --- empuje: pecho 8, tríceps 8, anterior 4, lateral 5, posterior 4
+    p('pl_empuje', 'empuje', 'Empuje', 'Pecho, tríceps y hombro', [
       it('ex_press_banca', 'v_banca_barra', 4, 5, 10, 2, 2, 150),
       it('ex_press_inclinado', 'v_inclinado_maquina', 4, 8, 12, 1, 2, 120),
       it('ex_elevacion_lateral', 'v_lateral_polea', 5, 12, 20, 0, 1, 90),
-      it('ex_triceps_overhead', 'v_overhead_soga', 5, 8, 15, 0, 1, 90),
-      it('ex_pec_deck', 'v_pecdeck_maquina', 4, 8, 15, 0, 1, 90),
+      it('ex_triceps_overhead', 'v_overhead_soga', 4, 8, 15, 0, 1, 90),
+      it('ex_face_pull', 'v_facepull_polea', 4, 12, 20, 0, 1, 90),
     ]),
-    p('pl_tiron', 'Tirón', 'Espalda y bíceps', [
+    p('pl_empuje_b', 'empuje', 'Empuje · mancuernas', 'El mismo reparto, sin barra', [
+      it('ex_press_banca', 'v_banca_mancuernas', 4, 8, 12, 1, 2, 150),
+      it('ex_pec_deck', 'v_pecdeck_maquina', 4, 8, 15, 0, 1, 90),
+      it('ex_press_hombro', 'v_presshombro_mancuernas', 3, 8, 12, 1, 2, 120),
+      it('ex_elevacion_lateral', 'v_lateral_maquina', 4, 12, 20, 0, 1, 90),
+      it('ex_pushdown', 'v_pushdown_barra', 4, 8, 15, 0, 1, 90),
+      it('ex_face_pull', 'v_facepull_polea', 3, 12, 20, 0, 1, 90),
+    ]),
+
+    // --- tirón: dorsal 9, espalda alta 7.5, bíceps 9, posterior 5, lateral 3
+    p('pl_tiron', 'tiron', 'Tirón', 'Espalda y bíceps', [
       it('ex_jalon', 'v_jalon_neutro', 4, 8, 12, 1, 2, 120),
       it('ex_remo_apoyo', 'v_remo_t', 4, 8, 12, 1, 2, 120),
       it('ex_curl_inclinado', 'v_curlinc_mancuernas', 5, 8, 15, 0, 1, 90),
       it('ex_pullover', 'v_pullover_polea', 3, 8, 15, 0, 1, 90),
-      it('ex_elevacion_lateral', 'v_lateral_mancuernas', 3, 12, 20, 0, 1, 90),
-      it('ex_face_pull', 'v_facepull_polea', 3, 12, 20, 0, 1, 90),
-    ]),
-    p('pl_brazos', 'Brazos', 'Bíceps, tríceps y posterior', [
-      it('ex_curl_inclinado', 'v_curlinc_mancuernas', 4, 8, 15, 0, 1, 90),
-      it('ex_triceps_overhead', 'v_overhead_soga', 4, 8, 15, 0, 1, 90),
-      it('ex_curl_predicador', 'v_predicador_maquina', 4, 8, 15, 0, 1, 90),
-      it('ex_pushdown', 'v_pushdown_barra', 4, 8, 15, 0, 1, 90),
-      it('ex_elevacion_lateral', 'v_lateral_polea', 3, 12, 20, 0, 1, 90),
       it('ex_posterior', 'v_posterior_maquina', 3, 12, 20, 0, 1, 90),
-    ]),
-    p('pl_hombros', 'Hombros', 'Lateral y posterior', [
-      it('ex_elevacion_lateral', 'v_lateral_maquina', 6, 12, 20, 0, 1, 90),
-      it('ex_press_hombro', 'v_presshombro_mancuernas', 4, 8, 12, 1, 2, 120),
-      it('ex_posterior', 'v_posterior_maquina', 4, 12, 20, 0, 1, 90),
       it('ex_elevacion_lateral', 'v_lateral_mancuernas', 3, 12, 20, 0, 1, 90),
-      it('ex_curl_martillo', 'v_martillo_mancuernas', 3, 8, 15, 0, 1, 90),
-      it('ex_triceps_unilateral', 'v_triuni_polea', 2, 8, 15, 0, 1, 90),
     ]),
-    p('pl_piernas', 'Piernas y core', 'Mantenimiento, con algo de brazo', [
+    p('pl_tiron_b', 'tiron', 'Tirón · unilateral', 'El mismo reparto, un lado por vez', [
+      it('ex_remo_apoyo', 'v_remo_polea', 4, 8, 12, 1, 2, 120),
+      it('ex_jalon_unilateral', 'v_jalonuni_polea', 4, 8, 12, 1, 2, 120),
+      it('ex_jalon', 'v_jalon_prono', 3, 8, 12, 1, 2, 120),
+      it('ex_curl_predicador', 'v_predicador_maquina', 5, 8, 15, 0, 1, 90),
+      it('ex_face_pull', 'v_facepull_polea', 3, 12, 20, 0, 1, 90),
+      it('ex_elevacion_lateral', 'v_lateral_polea', 3, 12, 20, 0, 1, 90),
+    ]),
+
+    // --- brazos: bíceps 8, tríceps 8, lateral 6
+    p('pl_brazos', 'brazos', 'Brazos', 'Bíceps y tríceps en estiramiento', [
+      it('ex_curl_predicador', 'v_predicador_maquina', 4, 8, 15, 0, 1, 90),
+      it('ex_triceps_overhead', 'v_overhead_soga', 4, 8, 15, 0, 1, 90),
+      it('ex_curl_martillo', 'v_martillo_mancuernas', 4, 8, 15, 0, 1, 90),
+      it('ex_triceps_unilateral', 'v_triuni_polea', 4, 8, 15, 0, 1, 90),
+      it('ex_elevacion_lateral', 'v_lateral_polea', 6, 12, 20, 0, 1, 90),
+    ]),
+    p('pl_brazos_b', 'brazos', 'Brazos · polea', 'El mismo reparto, otro material', [
+      it('ex_curl_inclinado', 'v_curlinc_mancuernas', 4, 8, 15, 0, 1, 90),
+      it('ex_pushdown', 'v_pushdown_barra', 4, 8, 15, 0, 1, 90),
+      it('ex_curl_martillo', 'v_martillo_soga', 4, 8, 15, 0, 1, 90),
+      it('ex_triceps_overhead', 'v_overhead_acostado', 4, 8, 15, 0, 1, 90),
+      it('ex_elevacion_lateral', 'v_lateral_maquina', 6, 12, 20, 0, 1, 90),
+    ]),
+
+    // --- piernas: cuádriceps 8, isquios 6, gemelos 4, glúteo 4, abdomen 3, lateral 3
+    p('pl_piernas', 'piernas', 'Piernas y core', 'Mantenimiento, con algo de hombro', [
       it('ex_prensa', 'v_prensa_45', 4, 8, 12, 1, 2, 150),
       it('ex_hack', 'v_hack_maquina', 4, 8, 12, 1, 2, 120),
       it('ex_curl_femoral', 'v_femoral_sentado', 4, 8, 15, 0, 1, 90),
       it('ex_gemelos', 'v_gemelos_maquina', 4, 12, 20, 0, 1, 90),
-      it('ex_elevacion_lateral', 'v_lateral_polea', 3, 12, 20, 0, 1, 90),
       it('ex_abdomen', 'v_abdomen_polea', 3, 12, 20, 0, 1, 90),
+      it('ex_elevacion_lateral', 'v_lateral_polea', 3, 12, 20, 0, 1, 90),
     ]),
-    p('pl_torso', 'Torso completo', 'Para las semanas de 3 días', [
-      it('ex_press_inclinado', 'v_inclinado_maquina', 4, 8, 12, 2, 2, 120),
-      it('ex_jalon', 'v_jalon_neutro', 4, 8, 12, 1, 2, 120),
-      it('ex_elevacion_lateral', 'v_lateral_polea', 5, 12, 20, 0, 1, 90),
-      it('ex_remo_apoyo', 'v_remo_t', 4, 8, 12, 1, 2, 120),
-      it('ex_triceps_overhead', 'v_overhead_soga', 4, 8, 15, 0, 1, 90),
-      it('ex_curl_inclinado', 'v_curlinc_mancuernas', 3, 8, 15, 0, 1, 90),
+    p('pl_piernas_b', 'piernas', 'Piernas · unilateral', 'El mismo reparto, un lado por vez', [
+      it('ex_prensa', 'v_prensa_45', 4, 8, 12, 1, 2, 150),
+      it('ex_hack', 'v_hack_unilateral', 4, 8, 12, 1, 2, 120),
+      it('ex_curl_femoral', 'v_femoral_acostado', 4, 8, 15, 0, 1, 90),
+      it('ex_gemelos', 'v_gemelos_sentado', 4, 12, 20, 0, 1, 90),
+      it('ex_abdomen', 'v_abdomen_polea', 3, 12, 20, 0, 1, 90),
+      it('ex_elevacion_lateral', 'v_lateral_mancuernas', 3, 12, 20, 0, 1, 90),
     ]),
   ];
 }
@@ -701,6 +745,24 @@ export function exceso(db, plantillaId, ref = Date.now()) {
 }
 
 /**
+ * Qué roles ya cumpliste esta semana. Una semana es un bloque de cada rol, así
+ * que repetir uno es el error que hay que avisar antes de que pase, no después.
+ */
+export function rolesDeLaSemana(db, ref = Date.now()) {
+  const desde = inicioSemana(ref);
+  const hechos = {};
+  for (const s of db.sesiones) {
+    if (!s.fin || s.inicio < desde || s.inicio >= desde + 7 * 864e5) continue;
+    if (!s.sets.some(x => x.estado === 'hecha')) continue;
+    const pl = plantillaPorId(db, s.plantillaId);
+    if (pl?.rol) (hechos[pl.rol] = hechos[pl.rol] || []).push(s.plantillaNombre || pl.nombre);
+  }
+  return hechos;
+}
+
+const LABEL_ROL = { empuje: 'empuje', tiron: 'tirón', brazos: 'brazos', piernas: 'piernas' };
+
+/**
  * Ordena las plantillas por lo que suman hoy: cuánto déficit de la semana
  * cubren, menos lo que cuesta pegarle a algo que todavía se está recuperando.
  *
@@ -708,13 +770,16 @@ export function exceso(db, plantillaId, ref = Date.now()) {
  * sirve para decidir, sirve para obedecer.
  */
 export function sugerencias(db, ref = Date.now()) {
+  const rolesHechos = rolesDeLaSemana(db, ref);
   const lista = db.plantillas.map(p => {
     const cob = cobertura(db, p.id, ref);
     const { castigo, cuales } = castigoRecuperacion(db, p.id, ref);
     const ex = exceso(db, p.id, ref);
+    const repetido = p.rol ? rolesHechos[p.rol] : null;
     return {
       id: p.id,
       nombre: p.nombre,
+      rol: p.rol ?? null,
       cubre: cob.cubre,
       deficit: cob.deficit,
       castigo: Math.round(castigo * 10) / 10,
@@ -722,7 +787,11 @@ export function sugerencias(db, ref = Date.now()) {
       // suma, no volumen que lastima.
       exceso: ex.total,
       sePasaEn: ex.cuales,
-      puntaje: cob.cubre - castigo - ex.total * 0.5,
+      // Repetir un rol se penaliza fuerte: la semana está diseñada para uno de
+      // cada uno, y el hermano de un rol ya hecho aporta el mismo volumen otra
+      // vez, no volumen que falte.
+      repetido: repetido ? repetido[0] : null,
+      puntaje: cob.cubre - castigo - ex.total * 0.5 - (repetido ? 100 : 0),
       enRecuperacion: cuales,
     };
   });
@@ -733,7 +802,10 @@ export function sugerencias(db, ref = Date.now()) {
     const p = x.sePasaEn[0];
     // Esperar cuando el costo de recuperación se come lo que aporta; "se pasa"
     // cuando manda más de una serie de sobra que de déficit cubierto.
-    if (x.castigo >= x.cubre && x.enRecuperacion.length) {
+    if (x.repetido) {
+      x.estado = 'hecho';
+      x.motivo = `el ${LABEL_ROL[x.rol] ?? x.rol} de esta semana ya lo hiciste con ${x.repetido}`;
+    } else if (x.castigo >= x.cubre && x.enRecuperacion.length) {
       x.estado = 'esperar';
       x.motivo = `${r.musculo.label} recupera en ${r.faltan} h`;
     } else if (x.exceso >= 4 && x.exceso > x.cubre * 0.5) {

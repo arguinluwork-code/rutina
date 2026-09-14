@@ -1,7 +1,7 @@
 // Arranque, estado global y navegación.
 
 import { cargar, guardar, pedirPersistencia, tomarFoto } from './db.js';
-import { semillaInicial, catalogoBase, VERSION_DATOS, PASO } from './data.js';
+import { semillaInicial, catalogoBase, versionActual, VERSION_DATOS, PASO } from './data.js';
 import { h, vaciar, cerrarHoja, confirmar, icono, toast, mmss, pitido, mantenerPantalla } from './ui.js';
 import { ABANDONO_MS, terminarSesion, descartarSesion, restanteDescanso } from './session.js';
 
@@ -246,26 +246,60 @@ async function migrar(db) {
   }
   if (sumados) S.avisoCatalogo = sumados;
 
-  // v10: ajuste de fábrica a las plantillas, para que la semana canónica
-  // (Empuje + Tirón + Brazos + Piernas) cierre exacta. Solo entra en las
-  // plantillas que siguen tal cual salieron de fábrica; si la editaste, es
-  // tuya. Y entra como versión NUEVA, no como reemplazo: la anterior queda y
-  // se puede volver desde Versiones.
-  if (desde < 10) {
-    let ajustadas = 0;
+  // v11: la rutina pasa a organizarse por ROLES (empuje, tirón, brazos,
+  // piernas), cada uno con un hermano de igual perfil muscular. Antes eran seis
+  // bloques sueltos de los que elegías cuatro: quince sumas posibles, de las
+  // que cerraba una. Ahora la semana es un bloque de cada rol y las dieciséis
+  // combinaciones cierran.
+  //
+  // Igual que en v10, nada se pisa: la plantilla que editaste es tuya y solo
+  // recibe la etiqueta de rol. Las de fábrica reciben una VERSIÓN nueva, así
+  // que la anterior queda y se puede volver desde Versiones.
+  if (desde < 11) {
+    const NOTAS_FABRICA = [
+      'Plantilla inicial',
+      'Ajuste de fábrica: la semana de 4 cierra exacta',
+    ];
+    const deFabrica = (pl) => pl.versiones.every(v => NOTAS_FABRICA.includes(v.nota));
+
+    let ajustadas = 0, nuevas = 0, retiradas = 0;
     for (const fab of base.plantillas) {
       const mia = db.plantillas.find(p => p.id === fab.id);
-      if (!mia) continue;
-      const intacta = mia.versiones.length === 1 && mia.versiones[0].nota === 'Plantilla inicial';
-      const distinta = JSON.stringify(mia.versiones[0].items) !== JSON.stringify(fab.versiones[0].items);
-      if (!intacta || !distinta) continue;
+      if (!mia) { db.plantillas.push(fab); nuevas++; continue; }
+      mia.rol = fab.rol;
+      if (!deFabrica(mia)) continue;
+      const items = fab.versiones[0].items;
+      if (JSON.stringify(versionActual(mia).items) === JSON.stringify(items)) continue;
       const n = Math.max(...mia.versiones.map(v => v.n)) + 1;
-      mia.versiones.push({ n, ts: Date.now(), nota: 'Ajuste de fábrica: la semana de 4 cierra exacta', items: fab.versiones[0].items });
+      mia.versiones.push({ n, ts: Date.now(), nota: 'Rediseño por roles: las 16 semanas cierran', items });
       mia.versionActual = n;
+      mia.nombre = fab.nombre;
       mia.foco = fab.foco;
       ajustadas++;
     }
-    if (ajustadas) S.avisoPlantillas = ajustadas;
+
+    // Hombros y Torso completo salen: eran justamente los que rompían la
+    // cuenta. Torso duplicaba entero el pecho de Empuje y la espalda de Tirón,
+    // y aparecía en ocho de las nueve semanas de tres días que se pasaban de
+    // algún techo. Solo se retiran si nunca las tocaste; si las editaste son
+    // tuyas y quedan. El historial no depende de esto: cada sesión guarda el
+    // nombre de la plantilla con la que la hiciste.
+    for (const id of ['pl_hombros', 'pl_torso']) {
+      const i = db.plantillas.findIndex(p => p.id === id);
+      if (i < 0) continue;
+      if (!deFabrica(db.plantillas[i])) continue;
+      db.plantillas.splice(i, 1);
+      retiradas++;
+    }
+
+    // El orden en pantalla es el de los roles, con el hermano debajo del suyo.
+    const orden = base.plantillas.map(p => p.id);
+    db.plantillas.sort((a, b) => {
+      const ia = orden.indexOf(a.id), ib = orden.indexOf(b.id);
+      return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+    });
+
+    if (ajustadas || nuevas || retiradas) S.avisoPlantillas = { ajustadas, nuevas, retiradas };
   }
 
   db.v = VERSION_DATOS;
@@ -301,8 +335,13 @@ async function arrancar() {
     S.avisoModelo = false;
     toast('Tus días pasaron a ser plantillas y se conservó todo el historial');
   } else if (S.avisoPlantillas) {
-    S.avisoPlantillas = 0;
-    toast('Plantillas ajustadas. La versión anterior sigue en Versiones.');
+    const { ajustadas, nuevas, retiradas } = S.avisoPlantillas;
+    S.avisoPlantillas = null;
+    const partes = [];
+    if (ajustadas) partes.push(`${ajustadas} rediseñadas`);
+    if (nuevas) partes.push(`${nuevas} nuevas`);
+    if (retiradas) partes.push(`${retiradas} retiradas`);
+    toast(`Rutina por roles: ${partes.join(', ')}. Lo anterior sigue en Versiones.`);
   } else if (S.avisoCatalogo) {
     const n = S.avisoCatalogo;
     S.avisoCatalogo = 0;

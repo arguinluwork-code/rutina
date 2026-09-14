@@ -101,14 +101,73 @@ export function pantallaInicio(db) {
   );
 }
 
+const NOMBRE_ROL = {
+  empuje: 'Empuje', tiron: 'Tirón', brazos: 'Brazos', piernas: 'Piernas y core',
+};
+
+/**
+ * Las plantillas se agrupan por rol porque así es como está armada la rutina:
+ * la semana es un bloque de cada rol, y dentro del rol elegís cuál. Una lista
+ * plana de ocho invita justo al error que el rediseño vino a resolver, que era
+ * combinarlas de cualquier manera.
+ */
+function grupoRol(db, sug, rol, plantillas) {
+  const hecho = plantillas.every(x => x.estado === 'hecho');
+  return h('div', { class: 'stack', style: 'gap:6px' },
+    h('div', { style: 'display:flex;align-items:baseline;gap:8px;padding:6px 2px 0' },
+      h('span', { class: 'kicker', style: 'flex:1' }, NOMBRE_ROL[rol] ?? 'Sueltas'),
+      hecho ? h('span', { class: 'tiny', style: 'color:var(--ok,var(--fg-2))' }, 'hecho esta semana') : null,
+    ),
+    plantillas.map(x => filaPlantilla(db, x)),
+  );
+}
+
+function filaPlantilla(db, x) {
+  const sel = S.plSel === x.id;
+  const esperar = x.estado === 'esperar';
+  const apagada = esperar || x.estado === 'hecho' || x.estado === 'pasa';
+  const insignia =
+    x.estado === 'mejor' ? ['La que más suma', 'badge on', ''] :
+    x.estado === 'esperar' ? ['Mejor esperar', 'badge', 'color:var(--warn);border-color:var(--warn)'] :
+    x.estado === 'hecho' ? ['Ya lo hiciste', 'badge', ''] :
+    x.estado === 'pasa' ? ['Se pasa', 'badge', ''] : null;
+
+  return h('button', {
+    class: 'listrow', style: 'min-height:60px;padding:10px 14px;' +
+      (sel ? 'border-color:var(--fg);background:var(--surf-2)' : 'background:transparent'),
+    onclick: () => { S.plSel = x.id; mutar(() => {}); },
+  },
+    h('span', { class: 'txt' },
+      h('b', {
+        style: 'font-size:16px;color:' + (sel ? 'var(--fg)' : apagada ? 'var(--fg-3,var(--fg-2))' : 'var(--fg-2)'),
+      },
+        x.nombre,
+        insignia ? h('span', { class: insignia[1], style: 'margin-left:8px;' + insignia[2] }, insignia[0]) : null,
+      ),
+      h('small', { style: esperar ? 'color:var(--warn)' : '' },
+        `${seriesDePlantilla(db, x.id)} series · ${x.motivo}`),
+    ),
+    esperar ? h('span', { class: 'chev', style: 'color:var(--warn)' }, icono('alerta', 17)) : null,
+  );
+}
+
 function bloqueElegir(db) {
   const sug = sugerencias(db);
   const ctx = contextoSemana(db);
   if (S.plSel == null || !db.plantillas.some(p => p.id === S.plSel)) {
-    S.plSel = (sug.find(x => x.estado !== 'esperar') || sug[0]).id;
+    S.plSel = (sug.find(x => x.estado === 'ok' || x.estado === 'mejor') || sug[0]).id;
   }
-  const elegida = sug.find(x => x.id === S.plSel);
   const ult = sesionesTerminadas(db)[0];
+
+  // Los roles salen en el orden en que están las plantillas, que es el del
+  // diseño; las que no tienen rol (tuyas, o las viejas que editaste) van al final.
+  const orden = [];
+  const porRol = {};
+  for (const x of sug.slice().sort((a, b) => db.plantillas.findIndex(p => p.id === a.id) - db.plantillas.findIndex(p => p.id === b.id))) {
+    const r = x.rol ?? '_sueltas';
+    if (!porRol[r]) { porRol[r] = []; orden.push(r); }
+    porRol[r].push(x);
+  }
 
   return [
     bloqueSemana(db),
@@ -116,29 +175,8 @@ function bloqueElegir(db) {
 
     h('div', { class: 'stack tight' },
       h('span', { class: 'kicker', style: 'padding-left:2px' }, 'Entrenamiento'),
-      h('div', { class: 'stack', style: 'gap:6px' },
-        sug.map(x => {
-          const sel = S.plSel === x.id;
-          const esperar = x.estado === 'esperar';
-          const pasa = x.estado === 'pasa';
-          return h('button', {
-            class: 'listrow', style: 'min-height:60px;padding:10px 14px;' +
-              (sel ? 'border-color:var(--fg);background:var(--surf-2)' : 'background:transparent'),
-            onclick: () => { S.plSel = x.id; mutar(() => {}); },
-          },
-            h('span', { class: 'txt' },
-              h('b', { style: 'font-size:16px;color:' + (sel ? 'var(--fg)' : 'var(--fg-2)') },
-                x.nombre,
-                x.estado === 'mejor' ? h('span', { class: 'badge on', style: 'margin-left:8px' }, 'La que más suma') : null,
-                esperar ? h('span', { class: 'badge', style: 'margin-left:8px;color:var(--warn);border-color:var(--warn)' }, 'Mejor esperar') : null,
-                pasa ? h('span', { class: 'badge', style: 'margin-left:8px' }, 'Se pasa') : null,
-              ),
-              h('small', { style: esperar ? 'color:var(--warn)' : '' },
-                `${seriesDePlantilla(db, x.id)} series · ${x.motivo}`),
-            ),
-            esperar ? h('span', { class: 'chev', style: 'color:var(--warn)' }, icono('alerta', 17)) : null,
-          );
-        }),
+      h('div', { class: 'stack', style: 'gap:2px' },
+        orden.map(r => grupoRol(db, sug, r, porRol[r])),
       ),
     ),
 

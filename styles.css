@@ -304,12 +304,15 @@ input,textarea{font-family:inherit;-webkit-tap-highlight-color:transparent}
 .esc .z.decae        { background:rgba(229,72,77,.22); }
 .esc .z.plano        { background:rgba(229,72,77,.42); }
 .esc .corte { position:absolute; top:0; bottom:0; width:1px; background:var(--line); }
-/* El objetivo va como marco, no como relleno: se tiene que leer que está
-   apoyado sobre la curva y no que la reemplaza. */
-.esc .obj { position:absolute; top:3px; bottom:3px; border:2px solid var(--fg);
-            border-radius:5px; box-shadow:0 0 0 2px var(--bg) inset; }
-.esc .hoy { position:absolute; top:-1px; bottom:-1px; width:3px; background:var(--fg);
+/* El objetivo es una REFERENCIA y va punteado; lo que hiciste es el DATO y va
+   en tinta llena. Los dos en blanco sólido se confundían entre sí. */
+.esc .obj { position:absolute; top:2px; bottom:2px; border:1.5px dashed rgba(255,255,255,.62);
+            border-radius:5px; }
+.esc .rel { position:absolute; left:0; top:50%; height:8px; transform:translateY(-50%);
+            background:var(--fg); border-radius:0 4px 4px 0;
             box-shadow:0 0 0 1.5px var(--bg); }
+.esc-min { height:20px; margin:0; }
+.esc-min .rel { height:7px; }
 .esc-pie { position:relative; height:14px; font-size:11px;
            color:var(--fg-2); font-variant-numeric:tabular-nums; }
 .esc-pie span { position:absolute; top:0; white-space:nowrap; }

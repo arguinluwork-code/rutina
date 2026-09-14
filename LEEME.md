@@ -178,7 +178,14 @@ no son redondeos sino los puntos donde el rendimiento marginal cruza un umbral:
 | 20 a 28 | 92-97% | menos del 8% | rinde cada vez menos |
 | más de 28 | 97%+ | menos del 3% | la curva ya es plana |
 
-La escala también marca con una línea cuánto llevás esta semana, y la ficha de
+La escala está en **Progreso → Series por músculo**, que es donde mirás cuánto
+llevás, y también en Rutina → Objetivos semanales, que es donde los editás. Las
+barras van todas contra la MISMA escala y no cada una contra su propio objetivo:
+antes cada músculo se normalizaba solo, así que dos barras iguales podían ser 4
+series y 18. Se veía el cumplimiento pero no el volumen, que es lo que la
+evidencia mide.
+
+La barra llena es lo que llevás, el marco punteado es tu objetivo, y la ficha de
 cada músculo dice en números qué fracción estás capturando y cuánto rendiría una
 serie más. Una recomendación que no se puede auditar sirve para obedecer, no
 para decidir.

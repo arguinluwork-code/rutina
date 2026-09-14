@@ -4,8 +4,9 @@ import {
   MUSCULOS, musculo, UMBRALES, inicioSemana, seriesPorMusculo, estadoSemanal,
   horasDesde, semanasEntrenadas, semanasConDatos, maximoEj, ultimoEj,
   sesionesConEj, nombreCompleto, variantesDe,
+  CURVA, ZONAS, zonaVolumen, fraccionCubierta, rendimientoMarginal,
 } from './data.js';
-import { vacio } from './charts.js';
+import { vacio, escalaVolumen, leyendaEscala } from './charts.js';
 
 const SEMANA = 7 * 864e5;
 const TITULO_PRIORIDAD = { 1: 'Prioridad', 2: 'Sostén', 3: 'Mantenimiento' };
@@ -47,32 +48,28 @@ function bloqueVolumen(db) {
     p, items: MUSCULOS.filter(m => m.prioridad === p),
   }));
 
+  // Todas las barras van contra la MISMA escala, la de la curva de crecimiento,
+  // y no cada una contra su propio objetivo. Antes cada músculo se normalizaba
+  // solo, así que dos barras iguales podían ser 4 series y 18: se veía el
+  // cumplimiento pero no el volumen, que es lo que la evidencia mide.
   const barra = (m) => {
     const v = Math.round(((crudo[m.id] || 0) / div) * 2) / 2;
-    // La escala llega hasta el máximo del objetivo más un margen, así la banda
-    // de referencia siempre se ve y las barras son comparables entre músculos.
-    const tope = Math.max(m.objMax * 1.35, v * 1.05, 1);
-    const dentro = v >= m.objMin;
     return h('button', {
       class: 'bar', style: 'width:100%;background:none;text-align:left',
       onclick: () => hojaMusculo(db, m, v),
     },
       h('span', { class: 'bl' }, m.label),
-      h('span', { class: 'bt' },
-        h('span', { class: 'band', style: `left:${m.objMin / tope * 100}%;width:${(m.objMax - m.objMin) / tope * 100}%` }),
-        h('span', {
-          class: 'fill' + (dentro ? '' : ' low'),
-          style: `width:${Math.min(100, v / tope * 100)}%`,
-        }),
-      ),
+      h('span', { style: 'flex:1;min-width:0' }, escalaVolumen(m, v, true)),
       h('span', { class: 'bv num' }, String(v)),
     );
   };
 
   return h('div', { class: 'chart' },
     h('h3', null, 'Series por músculo'),
-    h('span', { class: 'tiny' },
-      'Primario 1, secundario 0.5. La banda es el objetivo semanal.'),
+    h('span', { class: 'tiny', style: 'line-height:1.45' },
+      `Primario 1, secundario 0.5. El fondo es la curva de crecimiento (${CURVA.optMin}–${CURVA.optMax} es el óptimo, igual para todos los músculos) ` +
+      'y el marco blanco es tu objetivo.'),
+    leyendaEscala(),
     h('div', { style: 'display:flex;gap:6px;margin-top:10px' },
       chip('semana', 'Esta semana'), chip('prom', 'Prom. 4 sem')),
     h('div', { class: 'stack', style: 'margin-top:14px;gap:14px' },
@@ -90,8 +87,14 @@ function hojaMusculo(db, m, hecho) {
     titulo: m.label,
     meta: `${hecho} de ${m.objMin}–${m.objMax}`,
     cuerpo: [
-      h('p', { class: 'sub', style: 'font-size:15px;line-height:1.5;margin:0' }, m.nota),
-      h('p', { class: 'tiny num', style: 'margin:0' },
+      escalaVolumen(m, hecho),
+      leyendaEscala(),
+      h('p', { class: 'sub', style: 'font-size:15px;line-height:1.5;margin:14px 0 0' }, m.nota),
+      h('p', { class: 'tiny', style: 'margin:10px 0 0' },
+        `Con ${hecho} series capturás el ${Math.round(fraccionCubierta(hecho) * 100)}% de la respuesta ` +
+        `alcanzable, y una serie más rendiría el ${Math.round(rendimientoMarginal(hecho) * 100)}% de lo que ` +
+        `rindió la primera. Zona: ${(ZONAS.find(z => z.id === zonaVolumen(hecho)) || {}).label.toLowerCase()}.`),
+      h('p', { class: 'tiny num', style: 'margin:8px 0 0' },
         h24 == null
           ? 'Todavía no lo entrenaste con estímulo suficiente.'
           : `Último estímulo fuerte hace ${Math.round(h24)} h. Recuperación sugerida: ${m.recuperacion} h.`),

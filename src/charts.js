@@ -102,9 +102,10 @@ export function vacio(titulo, texto) {
  * que tenés). Cuando el marco cae fuera del verde no es un error de la app:
  * es lo que significa especializar, y conviene verlo.
  *
- * @param hecho  series de esta semana; si viene, se marca con una línea.
+ * @param hecho     series del período; si viene, se dibuja como barra y línea.
+ * @param compacta  sin eje numérico, para las filas de una lista.
  */
-export function escalaVolumen(m, hecho = null) {
+export function escalaVolumen(m, hecho = null, compacta = false) {
   const pct = (n) => Math.max(0, Math.min(100, (n / CURVA.tope) * 100));
   const zonas = ZONAS.map(z => h('div', {
     class: 'z ' + z.id,
@@ -119,12 +120,14 @@ export function escalaVolumen(m, hecho = null) {
     title: `Tu objetivo: ${m.objMin}–${m.objMax}`,
   }) : null;
 
-  const marca = hecho != null && hecho > 0
-    ? h('div', { class: 'hoy', style: `left:calc(${pct(hecho)}% - 1.5px)`, title: `Esta semana: ${hecho}` })
-    : null;
+  // Lo hecho va como barra abajo y no como relleno de toda la altura: pintar
+  // encima de las zonas taparía justo la información que la escala aporta.
+  const relleno = hecho != null && hecho > 0
+    ? h('div', { class: 'rel', style: `width:${pct(hecho)}%` }) : null;
+  if (compacta) return h('div', { class: 'esc esc-min' }, zonas, cortes, objetivo, relleno);
 
   return h('div', null,
-    h('div', { class: 'esc' }, zonas, cortes, objetivo, marca),
+    h('div', { class: 'esc' }, zonas, cortes, objetivo, relleno),
     // Los números van en la posición real de su corte, no repartidos parejo:
     // un eje que miente sobre dónde cae el 10 no sirve para leer la escala.
     h('div', { class: 'esc-pie' },
@@ -143,6 +146,7 @@ export function leyendaEscala() {
     h('span', null, h('i', { style: 'background:rgba(255,176,32,.6)' }), 'Falta para el óptimo'),
     h('span', null, h('i', { style: 'background:rgba(204,255,51,.7)' }), 'Óptimo'),
     h('span', null, h('i', { style: 'background:rgba(229,72,77,.6)' }), 'Rinde cada vez menos'),
-    h('span', null, h('i', { style: 'border:2px solid var(--fg);background:transparent' }), 'Tu objetivo'),
+    h('span', null, h('i', { style: 'border:1.5px dashed rgba(255,255,255,.62);background:transparent' }), 'Tu objetivo'),
+    h('span', null, h('i', { style: 'background:var(--fg);height:5px;border-radius:2px' }), 'Lo que llevás'),
   );
 }
